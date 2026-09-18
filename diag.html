@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slow Spain · 诊断</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 16px; background: #F1FAEE; color: #264653; }
+h1 { color: #E63946; font-size: 18px; margin: 12px 0 8px; }
+.card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.row { padding: 4px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+.row:last-child { border-bottom: none; }
+.k { color: #6F1D1B; font-weight: 600; }
+.ok { color: #2A9D8F; }
+.bad { color: #E63946; }
+button { background: #E63946; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; margin-top: 8px; margin-right: 8px; }
+button.gray { background: #6F1D1B; }
+img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<h1>🔍 Slow Spain 诊断</h1>
+
+<div class="card">
+  <div class="row"><span class="k">URL:</span> <span id="url"></span></div>
+  <div class="row"><span class="k">UA:</span> <span id="ua"></span></div>
+  <div class="row"><span class="k">页面加载时间:</span> <span id="ts"></span></div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:14px;margin:0 0 6px;">① 内嵌 data.js 检查</h2>
+  <div class="row"><span class="k">Toledo spots:</span> <span id="toledo-count"></span></div>
+  <div class="row"><span class="k">t-r1 image:</span> <span id="t-r1-img"></span></div>
+  <div class="row"><span class="k">t-r7 image:</span> <span id="t-r7-img"></span></div>
+  <div class="row"><span class="k">t-r11 大学食堂:</span> <span id="t-r11-img"></span></div>
+  <div class="row"><span class="k">t-c3 顶层图书:</span> <span id="t-c3-img"></span></div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:14px;margin:0 0 6px;">② CDN 数据检查</h2>
+  <div class="row"><span class="k">GitHub 最新 SHA:</span> <span id="gh-sha"></span></div>
+  <div class="row"><span class="k">CDN URL:</span> <span id="cdn-url" style="font-size:11px;word-break:break-all;"></span></div>
+  <div class="row"><span class="k">CDN Toledo 数:</span> <span id="cdn-count"></span></div>
+  <div class="row"><span class="k">localStorage SHA 缓存:</span> <span id="local-sha"></span></div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:14px;margin:0 0 6px;">③ 图片实测</h2>
+  <div class="row"><span class="k">image2 (MYKA):</span> <span id="img2-status"></span> <img id="img2" src=""></div>
+  <div class="row"><span class="k">image3 (La Malquerida):</span> <span id="img3-status"></span> <img id="img3" src=""></div>
+  <div class="row"><span class="k">image9 (La Esencia):</span> <span id="img9-status"></span> <img id="img9" src=""></div>
+  <div class="row"><span class="k">image12 (顶层图书馆):</span> <span id="img12-status"></span> <img id="img12" src=""></div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:14px;margin:0 0 6px;">④ 重置工具</h2>
+  <button onclick="clearSHA()">🧹 清 SHA 缓存</button>
+  <button class="gray" onclick="forceReload()">🔄 强制刷新</button>
+  <div id="msg" style="margin-top:8px;font-size:13px;"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+document.getElementById('url').textContent = location.href;
+document.getElementById('ua').textContent = navigator.userAgent.slice(0, 60) + '...';
+document.getElementById('ts').textContent = new Date().toLocaleString('zh-CN');
+
+// 内嵌 data.js
+const spots = window.SLOW_SPAIN?.spots?.toledo || [];
+document.getElementById('toledo-count').textContent = spots.length + ' 个';
+const lookup = id => spots.find(s => s.id === id);
+for (const id of ['t-r1','t-r7','t-r11','t-c3']) {
+  const s = lookup(id);
+  document.getElementById(id.replace('-','') + '-img').textContent = s ? s.image : '(不存在)';
+}
+
+// CDN
+fetch('https://api.github.com/repos/622duan/slow-spain-data/commits?per_page=1')
+  .then(r => r.ok ? r.json() : null)
+  .then(arr => {
+    if (arr?.[0]?.sha) {
+      const sha = arr[0].sha.slice(0, 12);
+      document.getElementById('gh-sha').textContent = sha;
+      const cdnUrl = `https://cdn.jsdelivr.net/gh/622duan/slow-spain-data@${sha}/data.json`;
+      document.getElementById('cdn-url').textContent = cdnUrl;
+      return fetch(cdnUrl);
+    }
+  })
+  .then(r => r?.ok ? r.json() : null)
+  .then(d => {
+    if (d?.spots?.toledo) {
+      document.getElementById('cdn-count').textContent = d.spots.toledo.length + ' 个';
+    }
+  })
+  .catch(e => document.getElementById('cdn-count').textContent = '✗ 拉失败:' + e.message);
+
+document.getElementById('local-sha').textContent = localStorage.getItem('slow_spain_data_sha') || '(未缓存)';
+
+// 图片实测
+function testImg(name, src, id) {
+  const img = document.getElementById(id);
+  img.src = src;
+  img.onload = () => document.getElementById(id + '-status').innerHTML = '<span class="ok">✓ 200 OK</span> (' + img.naturalWidth + 'x' + img.naturalHeight + ')';
+  img.onerror = () => document.getElementById(id + '-status').innerHTML = '<span class="bad">✗ 加载失败</span>';
+}
+testImg('image2', '/images/image2.jpeg', 'img2');
+testImg('image3', '/images/image3.jpeg', 'img3');
+testImg('image9', '/images/image9.jpeg', 'img9');
+testImg('image12', '/images/image12.jpeg', 'img12');
+
+function clearSHA() {
+  localStorage.removeItem('slow_spain_data_sha');
+  document.getElementById('msg').textContent = '✓ SHA 缓存已清,刷新后会重新拉 GitHub 最新 SHA';
+}
+function forceReload() {
+  location.href = location.href.split('?')[0] + '?force=' + Date.now();
+}
+</script>
+</body>
+</html>

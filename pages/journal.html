@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>旅行日记 · Journal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .tab-btn { transition: color 0.2s; }
+  .journal-card { transition: transform 0.15s; cursor: pointer; }
+  .journal-card:active { transform: scale(0.98); }
+  .mood-btn { transition: all 0.15s; cursor: pointer; }
+  .mood-btn:active { transform: scale(0.92); }
+  .mood-btn.selected { background: #F1FAEE; transform: scale(1.1); }
+  textarea { resize: none; }
+  .view-btn-active { background: #1a1a1a !important; color: white !important; }
+  /* 横滑日历 */
+  .calendar-scroll {
+    display: flex; gap: 8px; overflow-x: auto; padding: 8px 4px;
+    scroll-snap-type: x mandatory;
+  }
+  .calendar-scroll::-webkit-scrollbar { display: none; }
+  .calendar-day {
+    flex-shrink: 0; width: 64px; height: 78px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: 14px; background: white; cursor: pointer;
+    scroll-snap-align: start;
+    transition: all 0.2s;
+  }
+  .calendar-day:active { transform: scale(0.95); }
+  .calendar-day.today { background: #E63946; color: white; }
+  .calendar-day.has-entry { background: #F1FAEE; border: 1.5px solid #2A9D8F; }
+  .calendar-day.has-entry.today { background: #E63946; color: white; border-color: white; }
+  /* 打印样式 */
+  @media print {
+    body * { visibility: hidden; }
+    #print-section, #print-section * { visibility: visible; }
+    #print-section { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+
+  <!-- Header -->
+  <div class="px-5 mt-2">
+    <div class="flex items-center gap-3 mb-3">
+      <a href="me.html" class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-all">
+        <i class="fa-solid fa-arrow-left text-sm"></i>
+      </a>
+      <div class="flex-1">
+        <h1 class="text-2xl font-bold">旅行日记</h1>
+        <p class="text-xs text-midnight/60" id="journal-sub">点击卡片查看或编辑</p>
+      </div>
+      <button id="export-btn" class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-all" title="导出 PDF">
+        <i class="fa-solid fa-file-export text-midnight/70 text-sm"></i>
+      </button>
+      <button id="new-btn" class="bg-tomato text-white rounded-full px-4 py-2 text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-tomato/30 flex items-center gap-1">
+        <i class="fa-solid fa-plus text-xs"></i>
+        <span>新建</span>
+      </button>
+    </div>
+
+    <!-- View toggle: 列表 / 日历 -->
+    <div class="flex bg-gray-100 rounded-2xl p-1 mb-3">
+      <button id="view-list" class="view-btn flex-1 py-1.5 rounded-xl text-xs font-medium view-btn-active">
+        <i class="fa-solid fa-list mr-1"></i>列表
+      </button>
+      <button id="view-cal" class="view-btn flex-1 py-1.5 rounded-xl text-xs font-medium text-midnight/60">
+        <i class="fa-solid fa-calendar mr-1"></i>日历
+      </button>
+    </div>
+
+    <!-- 统计 -->
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+        <div class="text-xl font-bold text-tomato" id="stat-total">0</div>
+        <div class="text-[10px] text-midnight/60">篇日记</div>
+      </div>
+      <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+        <div class="text-xl font-bold text-olive" id="stat-cities">0</div>
+        <div class="text-[10px] text-midnight/60">城市</div>
+      </div>
+      <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+        <div class="text-xl font-bold text-sand" id="stat-streak">0</div>
+        <div class="text-[10px] text-midnight/60">连续写</div>
+      </div>
+    </div>
+
+    <!-- 日历视图(横滑) -->
+    <div id="calendar-view" class="hidden mb-3">
+      <div class="flex items-center justify-between mb-2">
+        <button id="cal-prev" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-all">
+          <i class="fa-solid fa-chevron-left text-xs"></i>
+        </button>
+        <div class="font-semibold" id="cal-month">2026年9月</div>
+        <button id="cal-next" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-all">
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+      </div>
+      <div class="calendar-scroll" id="calendar-days"></div>
+      <div id="cal-day-entries" class="mt-3 space-y-2"></div>
+    </div>
+
+    <!-- 列表视图 -->
+    <div id="journal-list" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- 编辑器(底部弹层) -->
+<div id="editor-overlay" class="fixed inset-0 z-50 hidden" style="background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center;">
+  <div class="bg-white w-full rounded-t-3xl" style="max-width: 480px; max-height: 92vh; display: flex; flex-direction: column;">
+    <div class="flex items-center justify-between p-4 border-b border-gray-100">
+      <button id="editor-cancel" class="text-midnight/60 text-sm font-medium">取消</button>
+      <h3 class="font-bold" id="editor-title">新建日记</h3>
+      <button id="editor-save" class="text-tomato text-sm font-semibold">保存</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+      <!-- 日期 + 城市 -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-[10px] text-midnight/60 block mb-1">日期</label>
+          <input id="edit-date" type="date" class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] text-midnight/60 block mb-1">城市</label>
+          <select id="edit-city" class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none">
+            <option value="">未选</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 标题 -->
+      <div>
+        <label class="text-[10px] text-midnight/60 block mb-1">标题</label>
+        <input id="edit-title" type="text" placeholder="今天的标题..." class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none">
+      </div>
+
+      <!-- 心情 -->
+      <div>
+        <label class="text-[10px] text-midnight/60 block mb-2">心情</label>
+        <div class="flex gap-2 justify-between" id="mood-row">
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="😄">😄</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="🥰">🥰</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="😊">😊</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="😐">😐</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="😴">😴</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="😢">😢</button>
+          <button class="mood-btn flex-1 py-2 rounded-xl text-2xl" data-mood="🤩">🤩</button>
+        </div>
+      </div>
+
+      <!-- 内容 -->
+      <div>
+        <label class="text-[10px] text-midnight/60 block mb-1">内容</label>
+        <textarea id="edit-content" rows="6" placeholder="今天发生了什么?吃到什么好东西?遇到了谁?" class="w-full bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none leading-relaxed"></textarea>
+      </div>
+
+      <!-- 拍照 -->
+      <div>
+        <label class="text-[10px] text-midnight/60 block mb-2">照片</label>
+        <div id="photo-preview" class="flex flex-wrap gap-2 mb-2"></div>
+        <label class="block">
+          <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden">
+          <div class="bg-gray-50 border-2 border-dashed border-midnight/20 rounded-xl p-4 text-center cursor-pointer active:bg-gray-100 transition-colors">
+            <i class="fa-solid fa-camera text-2xl text-midnight/40 mb-1 block"></i>
+            <span class="text-xs text-midnight/60">点击拍照或选图</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- 关联 spot -->
+      <div>
+        <label class="text-[10px] text-midnight/60 block mb-2">关联店铺(可选)</label>
+        <div id="related-spots" class="space-y-2"></div>
+      </div>
+
+      <button id="editor-delete" class="hidden w-full py-3 text-wine text-sm font-medium border border-wine/20 rounded-xl mt-4 active:bg-wine/5">
+        <i class="fa-solid fa-trash mr-1"></i>删除日记
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 隐藏的打印区域 -->
+<div id="print-section" style="display: none;"></div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 状态 ====================
+const STORAGE_KEY = 'slow_spain_journal_v1';
+let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let editingId = null;
+let editingPhotos = []; // 编辑中的照片 (base64 array)
+let currentView = 'list';
+let calMonthOffset = 0; // 0=当月, 1=次月...
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
+function fmtDate(d) { const date = new Date(d); return `${date.getMonth() + 1}月${date.getDate()}日`; }
+function timeAgo(d) {
+  const ms = Date.now() - new Date(d).getTime();
+  const m = Math.floor(ms / 60000);
+  const h = Math.floor(ms / 3600000);
+  const days = Math.floor(ms / 86400000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return `${m} 分钟前`;
+  if (h < 24) return `${h} 小时前`;
+  if (days < 7) return `${days} 天前`;
+  return fmtDate(d);
+}
+function cityIdOf(sid) {
+  if (!window.SLOW_SPAIN?.spots) return null;
+  for (const [cid, arr] of Object.entries(window.SLOW_SPAIN.spots)) {
+    if (arr.find(s => s.id === sid)) return cid;
+  }
+  return null;
+}
+
+// ==================== 视图切换 ====================
+function switchView(view) {
+  currentView = view;
+  document.getElementById('view-list').classList.toggle('view-btn-active', view === 'list');
+  document.getElementById('view-list').classList.toggle('text-midnight/60', view !== 'list');
+  document.getElementById('view-cal').classList.toggle('view-btn-active', view === 'cal');
+  document.getElementById('view-cal').classList.toggle('text-midnight/60', view !== 'cal');
+  document.getElementById('journal-list').classList.toggle('hidden', view !== 'list');
+  document.getElementById('calendar-view').classList.toggle('hidden', view !== 'cal');
+  if (view === 'cal') renderCalendar();
+}
+
+document.getElementById('view-list').addEventListener('click', () => switchView('list'));
+document.getElementById('view-cal').addEventListener('click', () => switchView('cal'));
+
+// ==================== 日历视图 ====================
+function renderCalendar() {
+  const today = new Date();
+  const target = new Date(today.getFullYear(), today.getMonth() + calMonthOffset, 1);
+  const monthLabel = `${target.getFullYear()}年${target.getMonth() + 1}月`;
+  document.getElementById('cal-month').textContent = monthLabel;
+
+  const monthStart = new Date(target.getFullYear(), target.getMonth(), 1);
+  const monthEnd = new Date(target.getFullYear(), target.getMonth() + 1, 0);
+  const daysInMonth = monthEnd.getDate();
+
+  // 滚动到今天
+  const scroll = document.getElementById('calendar-days');
+  scroll.innerHTML = '';
+
+  // 把当月所有日期加上
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const hasEntry = entries.some(e => e.date === dateStr);
+    const isToday = dateStr === today.toISOString().slice(0, 10);
+
+    const el = document.createElement('button');
+    el.className = 'calendar-day' + (isToday ? ' today' : '') + (hasEntry ? ' has-entry' : '');
+    el.dataset.date = dateStr;
+    el.innerHTML = `
+      <div class="text-[10px] font-medium">周${'日一二三四五六'[new Date(dateStr).getDay()]}</div>
+      <div class="text-2xl font-bold my-0.5">${d}</div>
+      <div class="text-[10px]">${hasEntry ? '●' : ''}</div>
+    `;
+    el.addEventListener('click', () => openDayEntries(dateStr));
+    scroll.appendChild(el);
+  }
+
+  // 默认显示今天
+  openDayEntries(today.toISOString().slice(0, 10));
+}
+
+document.getElementById('cal-prev').addEventListener('click', () => { calMonthOffset--; renderCalendar(); });
+document.getElementById('cal-next').addEventListener('click', () => { calMonthOffset++; renderCalendar(); });
+
+function openDayEntries(dateStr) {
+  // 高亮选中日期
+  document.querySelectorAll('.calendar-day').forEach(d => {
+    d.style.outline = d.dataset.date === dateStr ? '2px solid #E63946' : '';
+  });
+  // 显示该天的所有日记
+  const dayEntries = entries.filter(e => e.date === dateStr);
+  const container = document.getElementById('cal-day-entries');
+  if (dayEntries.length === 0) {
+    container.innerHTML = `<div class="text-center py-4 text-midnight/40 text-xs">
+      ${dateStr} 没有日记
+      <button onclick="openEditor(null); document.getElementById('edit-date').value='${dateStr}';" class="block mx-auto mt-2 text-tomato underline">写一篇</button>
+    </div>`;
+    return;
+  }
+  container.innerHTML = dayEntries.map(e => renderMiniCard(e)).join('');
+  container.querySelectorAll('.journal-card').forEach(c => {
+    c.addEventListener('click', () => openEditor(c.dataset.id));
+  });
+}
+
+function renderMiniCard(e) {
+  return `
+    <div class="journal-card bg-white rounded-2xl p-3 shadow-sm" data-id="${e.id}">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">${e.mood || '😊'}</span>
+        <div class="flex-1 min-w-0">
+          <h4 class="font-semibold text-sm truncate">${e.title || '(无标题)'}</h4>
+          <p class="text-[10px] text-midnight/50">${timeAgo(e.updatedAt || e.createdAt)}</p>
+        </div>
+        ${e.photos && e.photos.length ? `<i class="fa-solid fa-image text-midnight/30 text-xs"></i>` : ''}
+      </div>
+      ${e.content ? `<p class="text-xs text-midnight/60 mt-1 line-clamp-2">${e.content}</p>` : ''}
+    </div>
+  `;
+}
+
+// ==================== 列表视图 ====================
+function renderList() {
+  const list = document.getElementById('journal-list');
+  if (entries.length === 0) {
+    list.innerHTML = `
+    <div class="text-center py-12 text-midnight/40">
+      <i class="fa-solid fa-feather text-4xl mb-3 block opacity-50"></i>
+      <p class="text-sm font-medium mb-1">还没有日记</p>
+      <p class="text-xs text-midnight/40 mb-4">记录旅行中的每一天</p>
+      <button id="empty-new" class="bg-tomato text-white px-5 py-2 rounded-full text-sm font-semibold active:scale-95 transition-all">
+        <i class="fa-solid fa-plus mr-1"></i>写第一篇
+      </button>
+    </div>`;
+    const eb = document.getElementById('empty-new');
+    if (eb) eb.addEventListener('click', () => openEditor(null));
+  } else {
+    list.innerHTML = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).map(e => `
+      <div class="journal-card bg-white rounded-2xl p-4 shadow-sm" data-id="${e.id}">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="text-2xl flex-shrink-0">${e.mood || '😊'}</span>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-sm truncate">${e.title || '(无标题)'}</h3>
+              <p class="text-[10px] text-midnight/50">
+                ${fmtDate(e.date)}
+                ${e.city ? ' · ' + (window.SLOW_SPAIN?.cities?.find(c => c.id === e.city)?.name || e.city) : ''}
+                · ${timeAgo(e.updatedAt || e.createdAt)}
+              </p>
+            </div>
+          </div>
+          <button class="edit-btn w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-midnight/50 active:bg-gray-100 flex-shrink-0" data-id="${e.id}">
+            <i class="fa-solid fa-pen text-xs"></i>
+          </button>
+        </div>
+        ${e.photos && e.photos.length ? `
+          <div class="flex gap-1 mb-2 overflow-x-auto hide-scrollbar">
+            ${e.photos.map(p => `<img src="${p}" class="w-20 h-20 rounded-xl object-cover flex-shrink-0">`).join('')}
+          </div>
+        ` : ''}
+        ${e.content ? `<p class="text-xs text-midnight/70 leading-relaxed line-clamp-3">${e.content}</p>` : ''}
+        ${e.spots && e.spots.length ? `
+        <div class="flex gap-1 mt-2 flex-wrap">
+          ${e.spots.slice(0, 3).map(sid => {
+            const s = window.SLOW_SPAIN?.spots?.[cityIdOf(sid)]?.find(x => x.id === sid);
+            return `<span class="text-[10px] bg-midnight/5 px-2 py-0.5 rounded-md">${s ? s.name : sid}</span>`;
+          }).join('')}
+          ${e.spots.length > 3 ? `<span class="text-[10px] text-midnight/40">+${e.spots.length - 3}</span>` : ''}
+        </div>` : ''}
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.journal-card').forEach(c => {
+      c.addEventListener('click', (e) => {
+        if (e.target.closest('.edit-btn')) return;
+        openEditor(c.dataset.id);
+      });
+    });
+    list.querySelectorAll('.edit-btn').forEach(b => {
+      b.addEventListener('click', () => openEditor(b.dataset.id));
+    });
+  }
+
+  // 统计
+  document.getElementById('stat-total').textContent = entries.length;
+  const citySet = new Set(entries.map(e => e.city).filter(Boolean));
+  document.getElementById('stat-cities').textContent = citySet.size;
+  const dates = [...new Set(entries.map(e => e.date))].sort().reverse();
+  let streak = 0;
+  let prev = new Date(); prev.setHours(0,0,0,0);
+  for (const d of dates) {
+    const dd = new Date(d); dd.setHours(0,0,0,0);
+    if (dd.getTime() === prev.getTime()) { streak++; prev.setDate(prev.getDate() - 1); }
+    else break;
+  }
+  document.getElementById('stat-streak').textContent = streak;
+}
+
+function render() {
+  if (currentView === 'list') renderList();
+  else renderCalendar();
+}
+
+// ==================== 编辑器 ====================
+function openEditor(id) {
+  editingId = id || null;
+  const e = id ? entries.find(x => x.id === id) : null;
+  const today = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('editor-title').textContent = id ? '编辑日记' : '新建日记';
+  document.getElementById('edit-date').value = e?.date || today;
+  document.getElementById('edit-title').value = e?.title || '';
+  document.getElementById('edit-content').value = e?.content || '';
+
+  const citySel = document.getElementById('edit-city');
+  citySel.innerHTML = '<option value="">未选</option>' +
+    (window.SLOW_SPAIN?.cities || []).map(c =>
+      `<option value="${c.id}" ${e?.city === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+
+  selectedMood = e?.mood || '😊';
+  document.querySelectorAll('.mood-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.mood === selectedMood);
+  });
+  document.querySelectorAll('.mood-btn').forEach(b => {
+    b.onclick = () => {
+      selectedMood = b.dataset.mood;
+      document.querySelectorAll('.mood-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+    };
+  });
+
+  // 照片
+  editingPhotos = e?.photos ? [...e.photos] : [];
+  renderPhotoPreview();
+
+  // 关联店铺
+  const cityId = e?.city || citySel.value;
+  const spots = cityId ? (window.SLOW_SPAIN?.spots?.[cityId] || []) : [];
+  const relatedContainer = document.getElementById('related-spots');
+  relatedContainer.innerHTML = spots.length === 0 ? '<p class="text-xs text-midnight/40">先选城市</p>'
+    : spots.slice(0, 5).map(s => {
+      const checked = e?.spots?.includes(s.id) ? 'checked' : '';
+      return `<label class="flex items-center gap-2 bg-gray-50 rounded-lg p-2 cursor-pointer">
+        <input type="checkbox" value="${s.id}" ${checked} class="related-spot accent-tomato">
+        <span class="text-xs flex-1">${s.name}</span>
+      </label>`;
+    }).join('');
+
+  citySel.onchange = () => {
+    const newCity = citySel.value;
+    const newSpots = newCity ? (window.SLOW_SPAIN?.spots?.[newCity] || []) : [];
+    relatedContainer.innerHTML = newSpots.length === 0 ? '<p class="text-xs text-midnight/40">该城市暂无店铺</p>'
+      : newSpots.slice(0, 5).map(s => `<label class="flex items-center gap-2 bg-gray-50 rounded-lg p-2 cursor-pointer">
+        <input type="checkbox" value="${s.id}" class="related-spot accent-tomato">
+        <span class="text-xs flex-1">${s.name}</span>
+      </label>`).join('');
+  };
+
+  document.getElementById('editor-delete').classList.toggle('hidden', !id);
+
+  // 显示弹层
+  document.getElementById('editor-overlay').style.display = 'flex';
+  document.getElementById('editor-overlay').classList.remove('hidden');
+}
+
+function renderPhotoPreview() {
+  const preview = document.getElementById('photo-preview');
+  preview.innerHTML = editingPhotos.map((p, idx) => `
+    <div class="relative w-20 h-20 flex-shrink-0">
+      <img src="${p}" class="w-full h-full rounded-xl object-cover">
+      <button class="photo-del absolute -top-1 -right-1 w-6 h-6 rounded-full bg-wine text-white text-[10px] flex items-center justify-center shadow-lg" data-idx="${idx}">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+  `).join('');
+  preview.querySelectorAll('.photo-del').forEach(b => {
+    b.addEventListener('click', () => {
+      editingPhotos.splice(parseInt(b.dataset.idx), 1);
+      renderPhotoPreview();
+    });
+  });
+}
+
+// 拍照 input
+document.getElementById('photo-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    // 压缩到 800px,base64
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      const ratio = Math.min(1, maxW / img.width);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      editingPhotos.push(dataUrl);
+      renderPhotoPreview();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = ''; // reset
+});
+
+function closeEditor() {
+  document.getElementById('editor-overlay').style.display = 'none';
+  document.getElementById('editor-overlay').classList.add('hidden');
+}
+
+function saveEditor() {
+  const data = {
+    id: editingId || generateId(),
+    date: document.getElementById('edit-date').value,
+    city: document.getElementById('edit-city').value,
+    title: document.getElementById('edit-title').value.trim(),
+    content: document.getElementById('edit-content').value.trim(),
+    mood: selectedMood,
+    photos: editingPhotos,
+    spots: Array.from(document.querySelectorAll('.related-spot:checked')).map(c => c.value),
+    updatedAt: new Date().toISOString()
+  };
+  if (!data.title && !data.content && editingPhotos.length === 0) {
+    alert('标题、内容、照片至少填一项');
+    return;
+  }
+  if (editingId) {
+    const idx = entries.findIndex(e => e.id === editingId);
+    if (idx >= 0) entries[idx] = { ...entries[idx], ...data };
+    else entries.push(data);
+  } else {
+    data.createdAt = new Date().toISOString();
+    entries.push(data);
+  }
+  save();
+  closeEditor();
+  render();
+}
+
+function deleteEditor() {
+  if (!editingId) return;
+  if (!confirm('确认删除这篇日记?')) return;
+  entries = entries.filter(e => e.id !== editingId);
+  save();
+  closeEditor();
+  render();
+}
+
+// ==================== 导出 PDF(电子手帐)====================
+function exportPDF() {
+  if (entries.length === 0) {
+    alert('还没有日记可导出');
+    return;
+  }
+  // 构建手帐风格打印 HTML
+  const sorted = entries.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const totalCities = new Set(sorted.map(e => e.city).filter(Boolean)).size;
+  const totalPhotos = sorted.reduce((s, e) => s + (e.photos?.length || 0), 0);
+
+  const html = `
+    <style>
+      .page { page-break-after: always; padding: 40px; }
+      .page:last-child { page-break-after: auto; }
+      .cover { background: linear-gradient(135deg, #E63946 0%, #6F1D1B 100%); color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; box-sizing: border-box; }
+      .cover h1 { font-size: 56px; margin: 0 0 12px; font-weight: 800; letter-spacing: 2px; }
+      .cover .sub { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
+      .cover .stats { display: flex; gap: 30px; margin-top: 30px; }
+      .cover .stat-num { font-size: 36px; font-weight: 800; }
+      .cover .stat-lbl { font-size: 11px; opacity: 0.85; }
+      .entry-card { background: white; border: 2px solid #F4A261; border-radius: 24px; padding: 30px; margin-bottom: 24px; position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.05); }
+      .entry-card::before { content: ''; position: absolute; left: -10px; top: 30px; width: 30px; height: 30px; background: #F4A261; border-radius: 50%; box-shadow: inset 0 -8px 0 rgba(0,0,0,0.05); }
+      .entry-head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-left: 24px; }
+      .mood { font-size: 48px; line-height: 1; }
+      .entry-head h2 { margin: 0; color: #264653; font-size: 28px; font-weight: 800; }
+      .entry-head .meta { margin: 4px 0 0; color: #888; font-size: 12px; }
+      .entry-photos { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; padding-left: 24px; }
+      .entry-photos img { width: 140px; height: 140px; object-fit: cover; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+      .entry-content { padding: 0 24px; line-height: 1.9; color: #333; font-size: 15px; white-space: pre-wrap; }
+      .entry-spots { margin-top: 14px; padding: 12px 24px; background: #F1FAEE; border-radius: 12px; font-size: 12px; color: #2A9D8F; }
+      .toc-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed #F4A261; }
+      .toc-num { color: #E63946; font-weight: 800; min-width: 30px; }
+      .toc-title { flex: 1; font-weight: 600; }
+      .toc-date { color: #888; font-size: 12px; }
+      .footer-page { text-align: center; padding: 60px; color: #E63946; }
+      .footer-page p { margin: 8px 0; }
+    </style>
+
+    <!-- 封面页 -->
+    <div class="page cover">
+      <div style="font-size: 80px;">🇪🇸</div>
+      <h1>我的西班牙</h1>
+      <p class="sub">漫游手帐 · ${new Date().toLocaleDateString('zh-CN')} 出走</p>
+      <div class="stats">
+        <div style="text-align: center;">
+          <div class="stat-num">${sorted.length}</div>
+          <div class="stat-lbl">天日记</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="stat-num">${totalCities}</div>
+          <div class="stat-lbl">座城市</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="stat-num">${totalPhotos}</div>
+          <div class="stat-lbl">张照片</div>
+        </div>
+      </div>
+      <p style="margin-top: 50px; font-size: 12px; opacity: 0.7;">由 Slow Spain 漫游西班牙生成</p>
+    </div>
+
+    <!-- 目录页 -->
+    <div class="page">
+      <h1 style="color: #E63946; font-size: 32px; margin: 0 0 24px;">📖 目录</h1>
+      ${sorted.map((e, idx) => {
+        const cityName = e.city ? window.SLOW_SPAIN?.cities?.find(c => c.id === e.city)?.name || e.city : '';
+        return `
+          <div class="toc-item">
+            <div class="toc-num">${String(idx + 1).padStart(2, '0')}</div>
+            <div class="toc-title">${e.mood || '😊'} ${e.title || '(无标题)'}</div>
+            <div class="toc-date">${fmtDate(e.date)}${cityName ? ' · ' + cityName : ''}</div>
+          </div>`;
+      }).join('')}
+    </div>
+
+    <!-- 日记页 -->
+    <div class="page">
+      <h1 style="color: #E63946; font-size: 28px; margin: 0 0 24px;">📝 我的日记</h1>
+      ${sorted.map(e => {
+        const cityName = e.city ? window.SLOW_SPAIN?.cities?.find(c => c.id === e.city)?.name || e.city : '';
+        return `
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="mood">${e.mood || '😊'}</span>
+            <div>
+              <h2>${e.title || '(无标题)'}</h2>
+              <p class="meta">
+                ${fmtDate(e.date)}${cityName ? ' · ' + cityName : ''}
+                ${e.spots && e.spots.length ? ' · ' + e.spots.length + ' 个地点' : ''}
+              </p>
+            </div>
+          </div>
+          ${e.photos && e.photos.length ? `
+            <div class="entry-photos">
+              ${e.photos.map(p => `<img src="${p}">`).join('')}
+            </div>
+          ` : ''}
+          ${e.content ? `<div class="entry-content">${e.content}</div>` : ''}
+          ${e.spots && e.spots.length ? `
+            <div class="entry-spots">
+              📍 ${e.spots.map(sid => {
+                const s = window.SLOW_SPAIN?.spots?.[cityIdOf(sid)]?.find(x => x.id === sid);
+                return s ? s.name : sid;
+              }).join(' · ')}
+            </div>
+          ` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- 封底 -->
+    <div class="page footer-page">
+      <div style="font-size: 48px;">🎒</div>
+      <h2 style="margin: 16px 0; font-size: 24px; color: #E63946;">旅途结束,回忆继续</h2>
+      <p style="color: #888; font-size: 14px;">这是一本属于你的西班牙手帐</p>
+      <p style="color: #888; font-size: 14px;">愿你时常翻阅,记得这些光</p>
+      <p style="margin-top: 40px; font-size: 11px; color: #ccc;">Slow Spain 漫游西班牙 · 旅行不只是去,更是记得</p>
+    </div>
+  `;
+  document.getElementById('print-section').innerHTML = html;
+  document.getElementById('print-section').style.display = 'block';
+  window.print();
+  document.getElementById('print-section').style.display = 'none';
+}
+
+// ==================== 事件 ====================
+document.getElementById('new-btn').addEventListener('click', () => openEditor(null));
+document.getElementById('export-btn').addEventListener('click', exportPDF);
+document.getElementById('editor-cancel').addEventListener('click', closeEditor);
+document.getElementById('editor-save').addEventListener('click', saveEditor);
+document.getElementById('editor-delete').addEventListener('click', deleteEditor);
+document.getElementById('editor-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'editor-overlay') closeEditor();
+});
+
+// 长按"+ 新建"显示导出 PDF
+let pressTimer;
+const nb = document.getElementById('new-btn');
+const pressStart = (e) => { pressTimer = setTimeout(() => exportPDF(), 800); };
+const pressEnd = () => { clearTimeout(pressTimer); };
+nb.addEventListener('touchstart', pressStart);
+nb.addEventListener('touchend', pressEnd);
+nb.addEventListener('mousedown', pressStart);
+nb.addEventListener('mouseup', pressEnd);
+nb.addEventListener('mouseleave', pressEnd);
+// 双击也导出
+nb.addEventListener('dblclick', exportPDF);
+
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>城市详情</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hero-grad { background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%); }
+  .cat-tab { transition: all 0.2s; cursor: pointer; }
+  .cat-tab-active { background: white !important; color: #264653 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .spot-card { transition: transform 0.15s; cursor: pointer; }
+  .spot-card:active { transform: scale(0.98); }
+  .tab-btn { transition: color 0.2s; }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2A9D8F; box-shadow: 0 0 0 0 rgba(42,157,143,0.7); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(42,157,143,0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(42,157,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(42,157,143,0); }
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <div class="relative">
+    <img id="hero-img" class="w-full h-72 object-cover">
+    <div class="hero-grad absolute inset-0"></div>
+    <a id="back-btn" href="journey.html" class="absolute top-12 left-4 w-10 h-10 rounded-full glass bg-white/30 flex items-center justify-center text-white active:scale-95 transition-all">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="loc-badge" class="hidden px-2.5 py-1 rounded-full bg-olive/90 text-[10px] font-semibold">
+          <i class="fa-solid fa-location-dot mr-1"></i>当前位置
+        </span>
+        <span id="live-badge" class="px-2.5 py-1 rounded-full bg-white/25 text-[10px] font-semibold backdrop-blur">
+          <span class="live-dot inline-block mr-1"></span>实时定位
+        </span>
+        <span id="days-badge" class="px-2.5 py-1 rounded-full bg-white/20 text-[10px] font-semibold"></span>
+      </div>
+      <h1 id="city-name" class="text-3xl font-bold mb-0.5"></h1>
+      <p id="city-sub" class="text-sm opacity-90"></p>
+    </div>
+  </div>
+
+  <div class="px-5 -mt-6 relative z-10">
+    <div class="bg-white rounded-2xl shadow-lg shadow-black/10 p-4 grid grid-cols-3 gap-2">
+      <div class="text-center">
+        <div id="stat-spots" class="text-xl font-bold text-tomato">0</div>
+        <div class="text-[10px] text-midnight/60">推荐店铺</div>
+      </div>
+      <div class="text-center border-l border-r border-gray-100">
+        <div class="text-xl font-bold text-olive" id="weather-temp">23°</div>
+        <div class="text-[10px] text-midnight/60" id="weather-desc">晴 · 微风</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xl font-bold text-sand">4</div>
+        <div class="text-[10px] text-midnight/60">剩余天数</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 mt-5">
+    <div class="bg-gradient-to-br from-olive/8 to-tomato/5 rounded-2xl p-4 border border-olive/10">
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-full bg-olive/20 flex items-center justify-center flex-shrink-0">
+          <i class="fa-solid fa-quote-left text-olive text-xs"></i>
+        </div>
+        <div>
+          <p id="city-quote" class="text-sm text-midnight/80 leading-relaxed italic"></p>
+          <p class="text-[10px] text-midnight/50 mt-2">— 漫游西班牙编辑部</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 mt-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-bold">4 类精选</h2>
+      <button id="sort-near" class="text-xs text-tomato font-medium flex items-center gap-1 active:scale-95 transition-all">
+        <i class="fa-solid fa-location-crosshairs"></i>离我最近
+      </button>
+    </div>
+    <div id="cat-tabs" class="flex gap-1 p-1 bg-gray-100 rounded-2xl overflow-hidden"></div>
+  </div>
+
+  <div id="spots-container" class="px-5 mt-4 space-y-3"></div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+const CITY_QUOTES = {
+  madrid: '"马德里没有巴塞罗那的海,没有托莱多的中世纪,但有凌晨 2 点还亮灯的油条店和永远有人举杯的 Gran Vía。"',
+  toledo: '"整座城就是一座博物馆。爬上 Mirador del Valle 的那一刻,你会明白为什么 El Greco 留下不走了。"',
+  cuenca: '"悬屋底下的 Mesón 餐厅,日落时整面峡谷烧成橘红色。这是西班牙最被低估的一站。"',
+  valencia: '"这座城被低估了。海鲜饭真的起源于这里,不是巴塞罗那。中央市场 1928 年的现代主义建筑比圣家堂早。"',
+  barcelona: '"这座城是高迪用 43 年只完成 1/4 的圣家堂,是哥特区老酒馆下午 5 点的 Vermut,是海滩晚风里飘来的海鲜饭香。"'
+};
+
+const CAT_META = window.SLOW_SPAIN.categoryMeta;
+const CATS = ['restaurant', 'dessert', 'cafe', 'stroll'];
+
+// URL 参数
+const params = new URLSearchParams(location.search);
+const cityId = params.get('id') || 'barcelona';
+const city = window.SLOW_SPAIN.cities.find(c => c.id === cityId);
+const spots = window.SLOW_SPAIN.spots[cityId] || [];
+
+// 渲染城市信息
+document.getElementById('hero-img').src = city.cover;
+document.getElementById('city-name').textContent = city.name;
+document.getElementById('city-sub').textContent = `${city.name_es} · ${city.subtitle}`;
+document.getElementById('days-badge').textContent = city.days;
+if (cityId === 'barcelona') {
+  document.getElementById('loc-badge').classList.remove('hidden');
+}
+document.getElementById('city-quote').textContent = CITY_QUOTES[cityId] || '';
+document.getElementById('stat-spots').textContent = spots.length;
+
+// 分类 tabs
+const catTabs = document.getElementById('cat-tabs');
+const counts = { all: spots.length };
+CATS.forEach(c => counts[c] = spots.filter(s => s.cat === c).length);
+
+catTabs.innerHTML = `
+  <button class="cat-tab cat-tab-active flex-1 py-2 rounded-xl text-[11px] font-semibold whitespace-nowrap" data-cat="all">
+    <i class="fa-solid fa-layer-group mr-1"></i>全部 ${counts.all}
+  </button>
+  ${CATS.map(c => counts[c] > 0 ? `
+    <button class="cat-tab flex-1 py-2 rounded-xl text-midnight/60 text-[11px] font-medium whitespace-nowrap" data-cat="${c}">
+      <i class="fa-solid ${CAT_META[c].icon} mr-1" style="color: ${CAT_META[c].color}"></i>${CAT_META[c].name} ${counts[c]}
+    </button>
+  ` : '').join('')}
+`;
+
+// ==================== 实时定位 + 距离 ====================
+let userLat = null, userLng = null;
+
+function detectLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => resolve(null),
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  });
+}
+
+// 根据 id 估算 spot 坐标(原型简化:基于 city 中心 + id hash 偏移)
+function spotCoord(s) {
+  if (s.lat && s.lng) return { lat: s.lat, lng: s.lng };
+  const hash = (s.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return {
+    lat: city.lat + ((hash % 100) / 100 - 0.5) * 0.02,
+    lng: city.lng + (((hash * 7) % 100) / 100 - 0.5) * 0.02
+  };
+}
+
+function calcDistance(coord) {
+  if (!userLat) return s => s.distance || '0.5km';
+  return s => {
+    const sc = spotCoord(s);
+    return window.SS.haversine(userLat, userLng, sc.lat, sc.lng).toFixed(1) + 'km';
+  };
+}
+
+// 渲染店铺
+function renderSpots(filter, sortByDistance = false) {
+  const container = document.getElementById('spots-container');
+  let filtered = filter === 'all' ? spots.slice() : spots.filter(s => s.cat === filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-center py-8 text-midnight/40 text-sm">
+      <i class="fa-solid fa-store text-2xl mb-2 block"></i>该分类暂无
+    </div>`;
+    return;
+  }
+
+  if (sortByDistance && userLat) {
+    const distFn = calcDistance(userLat);
+    filtered.sort((a, b) => {
+      const da = parseFloat(distFn(a));
+      const db = parseFloat(distFn(b));
+      return da - db;
+    });
+  }
+
+  let html = '';
+  if (filter === 'all' && !sortByDistance) {
+    CATS.forEach(cat => {
+      const list = filtered.filter(s => s.cat === cat);
+      if (list.length === 0) return;
+      const m = CAT_META[cat];
+      const enName = { restaurant: 'Restaurants', dessert: 'Desserts', cafe: 'Cafés', stroll: 'Strolls' }[cat];
+      html += `<div class="text-xs text-midnight/50 uppercase tracking-wider font-semibold mb-2 mt-5 first:mt-0">
+        <i class="fa-solid ${m.icon} mr-1.5" style="color:${m.color}"></i>${m.name} · ${enName}
+      </div>`;
+      html += list.map(s => renderSpotCard(s)).join('');
+    });
+  } else {
+    html = filtered.map(s => renderSpotCard(s, sortByDistance)).join('');
+  }
+
+  container.innerHTML = html;
+}
+
+function renderSpotCard(s, withDistance = false) {
+  const m = CAT_META[s.cat];
+  const isHot = s.hot;
+  const isBookmarked = localStorage.getItem('bm_' + s.id) === '1';
+  const dist = (withDistance && userLat) ? (() => {
+    const c = spotCoord(s);
+    return window.SS.haversine(userLat, userLng, c.lat, c.lng).toFixed(1) + 'km';
+  })() : null;
+  return `
+  <div class="spot-card bg-white rounded-2xl overflow-hidden shadow-sm" onclick="window.location='spot.html?id=${s.id}'">
+    <div class="relative h-40">
+      <img src="${s.image}" class="w-full h-full object-cover">
+      <button class="bookmark-btn absolute top-3 right-3 w-9 h-9 rounded-full glass bg-white/90 flex items-center justify-center active:scale-95 transition-all"
+              onclick="event.stopPropagation(); toggleBookmark(this, '${s.id}')" data-on="${isBookmarked ? '1' : '0'}">
+        <i class="${isBookmarked ? 'fa-solid text-tomato' : 'fa-regular text-midnight/60'} fa-bookmark text-sm"></i>
+      </button>
+      ${isHot ? `<div class="absolute bottom-3 left-3"><span class="px-2 py-1 rounded-full bg-tomato text-white text-[10px] font-semibold"><i class="fa-solid fa-fire mr-1"></i>编辑推荐</span></div>` : ''}
+    </div>
+    <div class="p-4">
+      <div class="flex items-start justify-between mb-1">
+        <h3 class="font-bold">${s.name}</h3>
+        <div class="flex items-center gap-0.5 text-xs">
+          <i class="fa-solid fa-star text-sand"></i>
+          <span class="font-semibold">${s.rating || '—'}</span>
+        </div>
+      </div>
+      <p class="text-xs text-midnight/60 mb-2 line-clamp-1">${(s.tags || []).slice(0,2).join(' · ')} · ${dist || s.distance || '—'} · ${s.hours}</p>
+      <p class="text-xs text-midnight/70 leading-relaxed line-clamp-2">${s.story || ''}</p>
+      <div class="flex gap-1.5 mt-3 flex-wrap">
+        ${(s.tags || []).slice(0,3).map(tag => `<span class="px-2 py-0.5 rounded-md bg-midnight/5 text-midnight/70 text-[10px]">${tag}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleBookmark(btn, spotId) {
+  const icon = btn.querySelector('i');
+  const isOn = btn.dataset.on === '1';
+  if (isOn) {
+    btn.dataset.on = '0';
+    icon.classList.remove('fa-solid', 'text-tomato');
+    icon.classList.add('fa-regular', 'text-midnight/60');
+    localStorage.setItem('bm_' + spotId, '0');
+  } else {
+    btn.dataset.on = '1';
+    icon.classList.remove('fa-regular', 'text-midnight/60');
+    icon.classList.add('fa-solid', 'text-tomato');
+    btn.style.transform = 'scale(1.2)';
+    setTimeout(() => btn.style.transform = '', 200);
+    localStorage.setItem('bm_' + spotId, '1');
+  }
+}
+
+// 类别 tab
+document.querySelectorAll('.cat-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('cat-tab-active'));
+    tab.classList.add('cat-tab-active');
+    renderSpots(tab.dataset.cat);
+  });
+});
+
+// "离我最近" 切换
+let sortByDist = false;
+document.getElementById('sort-near').addEventListener('click', () => {
+  if (!userLat) {
+    alert('需要先获取定位,请在浏览器中允许位置权限');
+    detectLocation().then(loc => {
+      if (loc) {
+        userLat = loc.lat; userLng = loc.lng;
+        sortByDist = true;
+        document.getElementById('sort-near').classList.add('text-olive');
+        renderSpots('all', true);
+      }
+    });
+    return;
+  }
+  sortByDist = !sortByDist;
+  document.getElementById('sort-near').classList.toggle('text-olive', sortByDist);
+  document.getElementById('sort-near').classList.toggle('text-tomato', !sortByDist);
+  renderSpots('all', sortByDist);
+});
+
+// 初始渲染
+renderSpots('all');
+
+// 异步获取定位
+detectLocation().then(loc => {
+  if (loc) {
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('live-badge').classList.remove('hidden');
+  }
+});
+
+// ==================== 真实天气 (Open-Meteo) ====================
+const WMO_CODES = {
+  0: '晴', 1: '基本晴', 2: '局部多云', 3: '阴',
+  45: '雾', 48: '雾凇',
+  51: '小毛毛雨', 53: '中毛毛雨', 55: '大毛毛雨',
+  61: '小雨', 63: '中雨', 65: '大雨',
+  71: '小雪', 73: '中雪', 75: '大雪',
+  80: '阵雨', 81: '强阵雨', 82: '暴阵雨',
+  95: '雷阵雨', 96: '雷雨+冰雹', 99: '雷雨+大冰雹'
+};
+
+function fetchWeather() {
+  if (!city.lat || !city.lng) return;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current_weather=true&timezone=auto`;
+  fetch(url)
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      const w = data.current_weather || {};
+      const code = w.weathercode != null ? WMO_CODES[w.weathercode] || '未知' : '未知';
+      const temp = Math.round(w.temperature || 0);
+      const wind = Math.round(w.windspeed || 0);
+      const tempEl = document.getElementById('weather-temp');
+      const descEl = document.getElementById('weather-desc');
+      if (tempEl) tempEl.textContent = `${temp}°`;
+      if (descEl) descEl.textContent = `${code} · 风速 ${wind}km/h`;
+    })
+    .catch(() => { /* 保持兜底 */ });
+}
+fetchWeather();
+
+// TabBar 跳转
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+</script>
+</body>
+</html>

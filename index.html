@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style"="black-translucent">
+<meta name="apple-mobile-web-app-title" content="漫游西班牙">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>漫游西班牙 · Slow Spain</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    background: linear-gradient(135deg, #E63946 0%, #F4A261 50%, #2A9D8F 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .splash {
+    text-align: center;
+    padding: 24px;
+  }
+  .splash .logo {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 24px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .splash h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .splash .sub {
+    font-size: 13px;
+    opacity: 0.85;
+    letter-spacing: 4px;
+    margin-bottom: 32px;
+  }
+  .enter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #E63946;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: 999px;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    transition: transform 0.15s;
+  }
+  .enter-btn:active {
+    transform: scale(0.95);
+  }
+  .install-hint {
+    margin-top: 24px;
+    font-size: 11px;
+    opacity: 0.7;
+    line-height: 1.6;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+<div class="splash">
+  <div class="logo">🇪🇸</div>
+  <h1>漫游西班牙</h1>
+  <div class="sub">SLOW SPAIN</div>
+  <a class="enter-btn" href="./pages/now.html">
+    <i class="fa-solid fa-play"></i>
+    进入应用
+  </a>
+  <div class="install-hint">
+    首次使用建议:<br>
+    Safari 打开本页 → 点分享按钮 → 添加到主屏幕
+  </div>
+</div>
+<script>
+  // 如果已是 PWA 模式(standalone),直接跳到主页
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    location.replace('./pages/now.html');
+  }
+</script>
+</body>
+</html>

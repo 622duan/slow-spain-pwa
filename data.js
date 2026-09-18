@@ -1,0 +1,394 @@
+// 漫游西班牙 — 数据中心 (基于真实攻略)
+// 路线:马德里 → 托莱多 → 昆卡 → 瓦伦西亚 → 巴塞罗那 → 马德里
+// 类别:餐厅 (restaurant) / 甜品 (dessert) / 咖啡 (cafe) / 闲逛 (stroll)
+
+window.SLOW_SPAIN = {
+  // 用户当前定位(浏览器 Geolocation 实时获取,这里默认哥特区模拟)
+  currentCity: "barcelona",
+  currentLocation: { name: "哥特区", lat: 41.3833, lng: 2.1769 },
+
+  cities: [
+    { id: "madrid", name: "马德里", name_es: "Madrid", subtitle: "首都 · 起点与终点", days: "Day 1-2 / Day 11",
+      cover: "/images/image55.jpeg",
+      lat: 40.4168, lng: -3.7038, accent: "#E63946" },
+    { id: "toledo", name: "托莱多", name_es: "Toledo", subtitle: "中世纪古城", days: "Day 3",
+      cover: "/images/image32.jpeg",
+      lat: 39.8628, lng: -4.0273, accent: "#C77D00" },
+    { id: "cuenca", name: "昆卡", name_es: "Cuenca", subtitle: "悬崖小镇 · 悬屋之谜", days: "Day 4",
+      cover: "/images/image36.jpeg",
+      lat: 40.0718, lng: -2.1340, accent: "#6F1D1B" },
+    { id: "valencia", name: "瓦伦西亚", name_es: "Valencia", subtitle: "地中海 · 海鲜饭故乡", days: "Day 5-6",
+      cover: "/images/image42.jpeg",
+      lat: 39.4699, lng: -0.3763, accent: "#F4A261" },
+    { id: "barcelona", name: "巴塞罗那", name_es: "Barcelona", subtitle: "高迪之城 · 加泰罗尼亚", days: "Day 7-10",
+      cover: "/images/image46.jpeg",
+      lat: 41.3851, lng: 2.1734, accent: "#2A9D8F" }
+  ],
+
+  // ================ 店铺数据 ================
+spots: {
+    madrid: [
+      { id: "m-r1", cat: "restaurant", name: "LANA", name_es: "Restaurante LANA", google_query: "Restaurante LANA Madrid steak", address: "C. de Preciados, 40, 28013 Madrid", tags: ["🥩 牛排馆", "World's 101 Best #5", "€€€€"], story: "World's 101 Best Steak Restaurants 排名第五。干式熟成牛排是马德里本地人的骄傲。", hours: "13:00-16:00 / 20:00-00:00", price: "€€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image48.jpeg", rating: 4.8, distance: "0.5km", hot: true, menu: ["干式熟成牛排 200g €48", "烤骨髓 ¥€12", "西班牙红酒配牛排 €18"] },
+      { id: "m-r3", cat: "restaurant", name: "Vinitus Gran Vía", name_es: "Vinitus Gran Vía", google_query: "Vinitus Gran Via Madrid", address: "Gran Vía, 60, 28013 Madrid", tags: ["蜂蜜鳕鱼必点", "鹅肝牛排两极", "不接受预约"], story: "招牌蜂蜜鳕鱼咸甜交织,几乎每桌必点。鹅肝牛排评价两极——爱者爱其醇厚,也有人吐槽油腻。不接受预约,饭点常排队半小时以上,建议错峰。部分海鲜品控不稳。", hours: "12:00-01:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.7km" },
+      { id: "m-r2", cat: "restaurant", name: "Sobrino de Botín", name_es: "Sobrino de Botín", google_query: "Sobrino de Botin Madrid", address: "C. de Cuchilleros, 17, 28005 Madrid", tags: ["🌟 1725 开业", "吉尼斯最老", "烤乳猪"], story: "传说中吉尼斯认证世界最古老的餐厅,1725 年开业。烤乳猪用伊比利亚猪,皮很脆,量按人数上。蛤蜊黄油焗的很香。西班牙冷汤是季节性限定,伊比利亚火腿跟外面的味道不大一样。甜点可以选以店名命名的——整个膏体略湿润,中间有淡奶油,外面类似舒芙蕾。", hours: "13:00-16:00 / 20:00-24:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image50.jpeg", rating: 4.7, distance: "0.4km", hot: true, menu: ["烤乳猪 €26", "西班牙冷汤(季节限定)", "店名舒芙蕾 €8"] },
+      { id: "m-r8", cat: "restaurant", name: "Diurno Restaurante", name_es: "Diurno", google_query: "Diurno Restaurante Madrid", address: "C. de San Marcos, 37, Centro, 28004 Madrid", tags: ["The Fork 可预约", "三文鱼塔塔", "€€€"], story: "The Fork 上可预约。章鱼足配芝士土豆泥、三文鱼塔塔都很不错。C. de San Marcos, 37, Centro, 28004 Madrid。", hours: "13:00-16:00 / 20:00-00:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image53.jpeg", rating: 4.4, distance: "0.6km" },
+      { id: "m-r4", cat: "restaurant", name: "La Montería", name_es: "La Montería", google_query: "Restaurante La Monteria Madrid", address: "Calle Lope de Rueda, 35, 28009 Madrid", tags: ["🌟 米其林", "野味", "靠近 Retiro"], story: "靠近 Retiro 公园。米其林餐厅。招牌:脆皮野鸡、慢烤牛排、白虾前菜、安康鱼烩饭、慢炖鹿肉。人均 €50-70。Calle Lope de Rueda, 35, 28009 Madrid。", hours: "13:30-16:00 / 20:30-23:30", price: "€€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image54.jpeg", rating: 4.7, distance: "1.2km" },
+      { id: "m-r5", cat: "restaurant", name: "La Mi Venta", name_es: "La Mi Venta", google_query: "Restaurante La Mi Venta Madrid", address: "Pl. de la Marina Española, 7, 28013 Madrid", tags: ["🌟 王宫附近", "下午 1 点开", "€€€"], story: "马德里王宫附近。Restaurante La Mi Venta, Pl. de la Marina Española, 7, Centro, 28013 Madrid。下午 1 点开门。小鱿鱼火腿都不错,牛排等得比较久。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image49.jpeg", rating: 4.5, distance: "0.9km" },
+      { id: "m-r6", cat: "restaurant", name: "El 17 de Moreto", name_es: "El 17 de Moreto", google_query: "El 17 de Moreto Madrid", address: "C. de Moreto, 17, Retiro, 28014 Madrid", tags: ["普拉多附近", "全天营业", "€€€"], story: "普拉多博物馆附近,从早开到晚的小店。经典 Alcachofa(朝鲜蓟)和 Huevos Rotos con Ibérico(伊比利亚火腿煎蛋),蘑菇烩饭和烤排骨也好吃。C. de Moreto, 17, Retiro, 28014, Madrid。", hours: "08:00-01:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image58.jpeg", rating: 4.4, distance: "1.0km" },
+      { id: "m-r7", cat: "restaurant", name: "Casa Dani", name_es: "Casa Dani Mercado de La Paz", google_query: "Casa Dani Mercado de la Paz Madrid", address: "Mercado de La Paz, C/ de Ayala, 28, 28001 Madrid", tags: ["🌟 爆浆土豆饼", "市场内", "附近 Serrano"], story: "Mercado de La Paz 内的 Casa Dani。爆浆土豆饼必吃。附近可以逛逛 Calle Serrano 富人区(可能有点像东京青山,看个人理解)。", hours: "10:00-16:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image57.jpeg", rating: 4.5, distance: "0.8km", hot: true },
+      { id: "m-s2", cat: "stroll", name: "圣米格尔市场", name_es: "Mercado de San Miguel", google_query: "Mercado de San Miguel Madrid", address: "Pl. de San Miguel, s/n, 28005 Madrid", tags: ["🌟 玻璃市集", "Tapas 集合", "€€"], story: "1916 年的铁艺玻璃市集,20 多家摊位一字排开,从伊比利亚火腿到海鲜 Tapas 一站吃齐。新鲜鱼做的 Tapas 会贵一些,市场里多往里面逛逛,门口的会贵。建议傍晚去。", hours: "10:00-24:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.5km", hot: true },
+      { id: "m-d1", cat: "dessert", name: "LOVEYOUCAKE", name_es: "LOVEYOUCAKE TARTAS DE QUESO", google_query: "LOVEYOUCAKE Madrid", address: "C. de Manuela Malasaña, 26, 28004 Madrid", tags: ["家庭作坊", "巴斯克", "胚酥度好"], story: "类似家庭作坊,店主就是蛋糕师。TARTAS DE QUESO ARTESANAS / TORRIJAS。中午 1:00 左右冰柜里很多蛋糕都卖完了。胚相对其他巴斯克,属于甜度弱但酥度好于其他巴斯克,大部分巴斯克很容易胚与糕体口感分离,但他家统一的很好。", hours: "10:00-15:00 / 17:00-20:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.7km", hot: true },
+      { id: "m-d2", cat: "dessert", name: "CARACOLA Antón Martín", name_es: "CARACOLA Pastelería", google_query: "CARACOLA Anton Martin Madrid", address: "C. de Santa Isabel, 39, 28012 Madrid", tags: ["🌟 开心果巴斯克", "流心", "坚果油脂香"], story: "招牌是开心果巴斯克。开心果巴斯克是流心状态的,开心果足量,有坚果油脂香。脏脏茶有很重的香料味,糖包单独配了,茶浓度非常高,客观来说不放糖属于苦的那类。", hours: "09:00-20:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image59.jpeg", rating: 4.6, distance: "0.9km" },
+      { id: "m-c1", cat: "cafe", name: "Hola Cafe", name_es: "Hola Café Specialty Coffee", google_query: "Hola Cafe Malasaña Madrid", address: "C. de Espiritu Santo, 18, 28004 Madrid", tags: ["🌟 殿堂级", "可买豆子", "手冲必尝"], story: "马德里殿堂级咖啡店,可以买豆子。咖啡店必尝手冲。", hours: "08:00-20:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.8, distance: "0.5km", hot: true },
+      { id: "m-c2", cat: "cafe", name: "DABOV Specialty Coffee", name_es: "DABOV Specialty Coffee", google_query: "DABOV Specialty Coffee Madrid", address: "C. de la Cabeza, 28, 28012 Madrid", tags: ["Alo 74158 COE 豆", "性价比", "氛围友好"], story: "Alo 74158 COE 豆一般,有点重容易咸,但有性价比。氛围不错,咖啡师友好。", hours: "08:30-19:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image60.jpeg", rating: 4.6, distance: "1.0km" },
+      { id: "m-c3", cat: "cafe", name: "Nubra", name_es: "Nubra Coffee Roasters", google_query: "Nubra Coffee Madrid", address: "C. de Barbieri, 7, 28004 Madrid", tags: ["自烘", "奶咖变压萃取", "€€"], story: "自烘咖啡,奶咖采用变压萃取技术,味道层次丰富。", hours: "08:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.8km" },
+      { id: "m-c4", cat: "cafe", name: "Ambu Coffee", name_es: "Ambu Café", google_query: "Ambu Cafe Madrid", address: "C. de la Cabeza, 25, 28012 Madrid", tags: ["与巴黎 Kawa 合作", "羊角包", "€€"], story: "和巴黎顶级咖啡馆 Kawa 合作,可以选 Kawa 的豆子。羊角包也不错。", hours: "08:30-19:30", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.9km" },
+      { id: "m-c5", cat: "cafe", name: "ALCHEMY Specialty Coffee", name_es: "ALCHEMY", google_query: "ALCHEMY Specialty Coffee Madrid", address: "C. de San Pedro, 1, 28014 Madrid", tags: ["Specialty", "Retiro 附近", "€€"], story: "ALCHEMY Specialty Coffee,靠近 Retiro 公园。", hours: "08:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "1.1km" },
+      { id: "m-c6", cat: "cafe", name: "Pan y Pepinillos", name_es: "Pan y Pepinillos Café", google_query: "Pan y Pepinillos Madrid", address: "C. de la Libertad, 5, 28004 Madrid", tags: ["店员推荐", "开心果拿铁", "€"], story: "店员推荐开心果拿铁。", hours: "08:00-19:00", price: "€", image: "/images/placeholder.jpg", rating: 4.4, distance: "0.7km" },
+      { id: "m-c9", cat: "cafe", name: "Pastora Specialty Coffee", name_es: "Pastora Specialty Coffee", google_query: "Pastora Coffee Madrid Colombia", address: "C/ de la Cabeza, 27, 28012 Madrid", tags: ["🌟 哥伦比亚豆子可选", "阳光店面", "€€"], story: "哥伦比亚咖啡。豆子可选,阳光很好的店面。", hours: "08:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "1.0km" },
+      { id: "m-c7", cat: "cafe", name: "La Mexicana", name_es: "Cafetería La Mexicana", google_query: "La Mexicana Madrid Gran Via", address: "Gran Vía, 59, 28013 Madrid", tags: ["百年老店", "红袋经典", "白袋单品"], story: "百年老店。红袋子经典款,白袋子为单品产地款,深烘浅烘都有。", hours: "08:00-22:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.6km" },
+      { id: "m-c8", cat: "cafe", name: "Guilis", name_es: "Cafés Guilis", google_query: "Cafes Guilis Madrid", address: "C. de la Cabeza, 21, 28012 Madrid", tags: ["本土品牌", "巴西豆低酸", "€€"], story: "西班牙本土品牌。巴西豆酸度低口感顺滑、哥伦比亚豆想起更丰富有焦糖可可风味。", hours: "09:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "1.0km" },
+      { id: "m-s1", cat: "stroll", name: "马德里一日漫游路线", name_es: "Ruta Madrid 1 día", google_query: "Madrid Centro walking route Santa Barbara Plaza Mayor", address: "Calle Hortaleza, 87 (Palacio Santa Bárbara) → Sol → Plaza Mayor → San Miguel → Palacio Real → Prado → Reina Sofía", tags: ["🌟 一日漫游", "Day 1+Day 2", "免费-€€€"], story: "马德里一日漫游路线(以手工艺人集市为锚,设计 Day 1+Day 2 串联)。手工艺人集市 Palacio Santa Bárbara(Calle Hortaleza, 87),位于 Hortaleza 街,距离 Chueca、Alonso Martínez 等区域都很近,适合下午的市中心散步路线,有珠宝插画、露台美食区,入场免费。📅 活动日期:第一周末 9月18日(周五)17:00-21:00、9月19日(周六)11:30-21:00、9月20日(周日)11:30-20:00;第二周末 9月25日(周五)17:00-21:00、9月26日(周六)11:30-21:00、9月27日(周日)11:30-20:00。Day 1 串联:Palacio Santa Bárbara → 马德里皇宫 → 皇家歌剧院 → 太阳门广场 → 马约尔广场 → 圣米格尔市场 → 格兰大道。Day 2 串联:提森博物馆 → 普拉多博物馆 → 丽池公园 → 索菲亚王后艺术中心。延伸散步:Calle Serrano 富人区(Louis Vuitton、Loewe 旗舰店)。", hours: "全天", price: "免费-€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image61.jpeg", rating: 4.9, distance: "0.0km", hot: true }
+    ],
+    toledo: [
+      { id: "t-d2", cat: "dessert", name: "MYKA Heladería", name_es: "MYKA Heladería", google_query: "MYKA Heladeria Toledo", address: "C. de la Ciudad, 11, 45002 Toledo", tags: ["免费加 2小料", "开心果迪拜巧克力", "€"], story: "MYKA 可以免费加两个小料,开心果迪拜巧克力酱也可以免费加。希腊酸奶冰淇淋很有名,有些店是冰淇淋有些是 Gelato。", hours: "11:00-23:00", price: "€", image: "https://622duan.github.io/slow-spain-pwa/images/image2.jpeg", rating: 4.6, distance: "0.2km" },
+      { id: "t-d3", cat: "dessert", name: "Martonela Cremería Slow", name_es: "Martonela Cremería Slow", google_query: "Martonela Cremeria Slow Toledo", address: "C. de la Sillería, 14, 45001 Toledo", tags: ["柠檬 Gelato", "Slow 工艺", "€"], story: "Martonela cremeria slow 的柠檬 gelato 不错。", hours: "11:00-23:00", price: "€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.3km" },
+      { id: "t-r1", cat: "restaurant", name: "La Malquerida de la Trinidad", name_es: "La Malquerida de la Trinidad", google_query: "La Malquerida de la Trinidad Toledo", address: "C. de la Trinidad, 9, 45002 Toledo", tags: ["🌟🌟🌟🌟🌟", "猪肋排", "鲜榨橙汁"], story: "La Malquerida de la Trinidad 猪肋排软烂,鲜榨橙汁、菜单丰富。", hours: "13:00-16:00 / 20:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image3.jpeg", rating: 4.8, distance: "0.2km", hot: true },
+      { id: "t-r2", cat: "restaurant", name: "Cason de los Lopez", name_es: "Cason de los Lopez Restaurant", google_query: "Cason de los Lopez Toledo", address: "C. de la Sillería, 10, 45001 Toledo", tags: ["🌟🌟🌟🌟🌟", "酒店餐厅", "蒜香煎大虾"], story: "Casón de los Lopez Restaurant 酒店餐厅,环境很不错,适合带女孩子去,蒜香煎大虾、烤鸡腿,有 Menu del Día(定食)适合一人食分餐制。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image4.jpeg", rating: 4.7, distance: "0.3km", hot: true },
+      { id: "t-r3", cat: "restaurant", name: "Taberna La Esencial", name_es: "Taberna La Esencial", google_query: "Taberna La Esencial Toledo", address: "C. de la Ciudad, 13, 45002 Toledo", tags: ["🌟🌟🌟🌟🌟", "古迹环境", "炭火蘑菇"], story: "Taberna La Esencial 环境很美丽,像是古迹,没有英文菜单。Champiñón 炭火烤蘑菇配溏心蛋,Cordero 炭火烤羊肋条,量大适合多人分食。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image5.jpeg", rating: 4.7, distance: "0.2km" },
+      { id: "t-r4", cat: "restaurant", name: "Taberna Embrujo", name_es: "Taberna Embrujo", google_query: "Taberna Embrujo Toledo", address: "C. de la Ciudad, 5, 45002 Toledo", tags: ["🌟🌟🌟🌟", "露天座位", "Sangría 知名"], story: "Taberna Embrujo 门面不大但很有氛围。有露天座位,营业相对较早适合早点吃晚餐。有英文菜单。桑格利亚 Sangría 当地比较有名,酒味比较明显。混合沙拉份量大,貌似可以做半分 half,里面的金枪鱼可以换。混和煎菜:蘑菇、虾、鱿鱼略咸(西班牙通病,可以提前说少盐)。", hours: "12:00-16:00 / 19:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image6.jpeg", rating: 4.5, distance: "0.2km" },
+      { id: "t-r5", cat: "restaurant", name: "Taberna el Botero", name_es: "Taberna el Botero", google_query: "Taberna el Botero Toledo", address: "C. de la Ciudad, 4, 45002 Toledo", tags: ["🌟🌟🌟🌟🌟", "服务员热情", "鹿肉吐司"], story: "Taberna el Botero 服务员态度好,会仔细给你介绍菜品。鹿肉吐司,处理的很好没有异味,鹿肉口感很嫩,参考三文鱼口感,味道是酸甜口酱。牛尾千层面吃起来很棒,拌着番茄酱很好吃,搭着餐前面包也很好。", hours: "13:00-16:00 / 20:00-23:30", price: "€€€", image: "/images/placeholder.jpg", rating: 4.8, distance: "0.3km", hot: true },
+      { id: "t-r6", cat: "restaurant", name: "El Trebol", name_es: "El Trébol", google_query: "El Trebol Toledo", address: "C. de Santa Fe, 8, 45001 Toledo", tags: ["🌟🌟🌟🌟🌟", "招牌薯球 Bomba", "Carcamusas"], story: "El Trebol: Sangría con espuma de limón 桑格利特加柠檬泡沫(可以让小梁子点了嘬一口),勇敢土豆 patatas bravas、招牌炸薯球 Bomba Trébol 里面是肉末跟辣番茄味道很丰富!Tree tree 的、托莱多炖肉 Carcamusas 这个只有托莱多有!猪肉非常嫩里面还有血肠。", hours: "12:00-16:00 / 20:00-00:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.4km" },
+      { id: "t-r7", cat: "restaurant", name: "La Esencia (Hotel Carlos V)", name_es: "Restaurante La Esencia", google_query: "La Esencia Hotel Carlos V Toledo", address: "Hotel Carlos V, C. de los Reyes Católicos, 6, 45002 Toledo", tags: ["古迹餐厅", "全景观景", "€€€"], story: "La Esencia 是 Hotel Carlos V 的室内餐厅,环境不错有历史感。可以看到托莱多全貌景色好,还有露天餐厅。人均 25 欧。适合带女孩子去。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image9.jpeg", rating: 4.5, distance: "0.4km" },
+      { id: "t-r8", cat: "restaurant", name: "Pastucci Trattoria-Pizzeria", name_es: "Pastucci", google_query: "Pastucci Trattoria Pizzeria Toledo", address: "C. de la Sillería, 6, 45001 Toledo", tags: ["意式披萨", "独立小屋", "€€"], story: "Pastucci Trattoria-Pizzeria 意式披萨,独立小矮房子,披萨大小两个尺寸差距不大。素的推荐蘑菇款。意面慎点!提拉米苏还可以。", hours: "13:00-23:30", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image7.jpeg", rating: 4.3, distance: "0.3km" },
+      { id: "t-r9", cat: "restaurant", name: "Barrio Taberna Moderna", name_es: "Barrio Taberna Moderna", google_query: "Barrio Taberna Moderna Toledo", address: "Pl. de Zocodover, 45001 Toledo", tags: ["Plaza 中心", "餐前小食", "炸鱿鱼三明治"], story: "Barrio Taberna Moderna 服务热情,有餐前小食,橄榄带核但相对清淡。炸鱿鱼三明治不错,地址在 Plaza de Zocodover,游客便于到达。", hours: "12:00-00:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image8.jpeg", rating: 4.3, distance: "0.1km" },
+      { id: "t-r10", cat: "restaurant", name: "Taberna Skala", name_es: "Taberna Skala", google_query: "Taberna Skala Toledo", address: "Cta. de la Sal, 5, 45001 Toledo", tags: ["老城小巷", "本地", "€€"], story: "Taberna Skala 在托莱多老城小巷里(Cta. de la Sal, 5, 45001 Toledo),本地小馆,游客少本地人多。", hours: "12:00-16:00 / 20:00-23:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.4, distance: "0.3km" },
+      { id: "t-r11", cat: "restaurant", name: "托莱多大学食堂", name_es: "Comedor Universidad de Castilla-La Mancha", google_query: "Comedor Universidad Castilla La Mancha Toledo", address: "Campus de la Fábrica de Armas, Universidad de Castilla-La Mancha, Toledo", tags: ["💰 学生套餐", "8.6 欧", "重回年轻"], story: "Clara Campoamor 区域大学的托莱多大学食堂,套餐 8.6 欧。味道上很一般,但吃这个套餐不是味道的,是体验的——会有种回到年轻的时候的感觉,纯纯花钱买体验。", hours: "午餐 13:00-15:30", price: "€", image: "/images/placeholder.jpg", rating: 4.0, distance: "1.5km" },
+      { id: "t-d1", cat: "dessert", name: "Materia", name_es: "Materia Pastelería", google_query: "Materia Pasteleria Toledo cheesecake", address: "C. de la Ciudad, 19, 45002 Toledo", tags: ["🌟🌟🌟🌟🌟", "2024 芝士蛋糕冠军", "流心"], story: "Materia 2024 年西班牙芝士蛋糕冠军店。蛋糕流心不会很甜,怕甜党可冲!",
+        hours: "10:00-20:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.9, distance: "0.2km", hot: true },
+      { id: "t-c1", cat: "cafe", name: "Heladería Churrería", name_es: "Heladería Churrería Toledo", google_query: "Heladeria Churreria Toledo", address: "C. de la Ciudad, 5, 45002 Toledo", tags: ["🌟🌟🌟🌟🌟", "西班牙油条", "热巧+浓缩"], story: "Heladeria Churreria 西班牙油条店。热巧和意式浓缩都推荐,咖啡很香醇(喝热的!!)。",
+        hours: "07:00-23:00", price: "€", image: "/images/placeholder.jpg", rating: 4.8, distance: "0.2km", hot: true },
+      { id: "t-c2", cat: "cafe", name: "El Café de las Monjas", name_es: "El Café de las Monjas", google_query: "El Cafe de las Monjas Toledo", address: "Pl. de Zocodover, 45001 Toledo", tags: ["修女咖啡厅", "蝴蝶酥", "€€"], story: "修女咖啡厅 El Cafe de las monjas:蝴蝶酥很有名。",
+        hours: "09:00-21:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.1km" },
+      { id: "t-c3", cat: "cafe", name: "Biblioteca Café (顶层)", name_es: "Biblioteca de Castilla-La Mancha", google_query: "Biblioteca Castilla La Mancha Toledo cafeteria", address: "C. de la Subida, 1, 45002 Toledo", tags: ["360° 观景台", "日落震撼", "免费"], story: "卡斯蒂利亚拉曼查图书馆(Biblioteca de Castilla-La Mancha)顶层图书馆对外开放,有个咖啡厅,可免费进入观景台;360° 俯瞰托莱多全景,日落时分尤其震撼。如果遇到休馆日,可绕道城堡后面,有小门可进,只需过个安检。", hours: "10:00-20:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image12.jpeg", rating: 4.9, distance: "0.2km", hot: true },
+      { id: "t-c4", cat: "cafe", name: "IL CAPPUCCINO", name_es: "IL CAPPUCCINO Specialty Coffee", google_query: "IL Cappuccino Toledo specialty coffee", address: "C. de la Ciudad, 19, 45002 Toledo", tags: ["🌟 Tripadvisor Choice 2022", "2014 第一首 specialty", "Andrea 意大利 barista"], story: "托莱多 2014 年第一家 specialty coffee 店。老板 Andrea 是意大利人,La Marzocco 顶级设备。Batch、V60、Flat White、拿铁都在水准之上。Tripadvisor 全球前 10% 餐厅。", hours: "周二至周六 09:00-14:00 / 17:00-20:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.8, distance: "0.2km", hot: true },
+      { id: "t-c5", cat: "cafe", name: "Café de Montaña", name_es: "Café de Montaña Toledo", google_query: "Cafe de Montana Toledo Granada", address: "C. Granada, 9, 45001 Toledo", tags: ["🌟 家庭经营", "哥伦比亚咖啡", "安达卢西亚天井"], story: "哥伦比亚咖啡 + 安达卢西亚天井。家庭经营,Affogato 和冷冻拿铁出名。露天座位看云飘过。", hours: "周日、周三-周六", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.3km" },
+      { id: "t-c6", cat: "cafe", name: "Libro Taberna El Internacional", name_es: "Libro Taberna El Internacional", google_query: "Libro Taberna El Internacional Toledo", address: "C. de la Ciudad, 15, 45002 Toledo", tags: ["📚 慢食+书店", "70s 旧椅子", "潮人聚集"], story: "Spray-painted 桌子 + 1970s 回收扶手椅 + 胡须。这里是潮人咖啡+书店。可以点咖啡配自制蛋糕,顺手看一本 Homage to Catalonia。", hours: "11:00-23:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.3km" },
+      { id: "t-c7", cat: "cafe", name: "Tetería Dar Al Chai", name_es: "Tetería Dar Al Chai", google_query: "Teteria Dar Al Chai Toledo", address: "C. de la Ciudad, 23, 45002 Toledo", tags: ["🇲🇦 摩洛哥茶+咖啡", "Mudejaré 装饰", "Pakistani Chai"], story: "摩洛哥茶馆,Alhambra 风格的 Mudejaré 装饰。100+ 种手工散茶 + 浓郁咖啡。创意的 Pakistani Chai 和 Hindu Chai 经典。", hours: "11:00-23:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.5, distance: "0.3km" },
+      { id: "t-c8", cat: "cafe", name: "Naturalmente Italian Coffee", name_es: "Naturalmente", google_query: "Naturalmente Italian Coffee Bakery Toledo", address: "Pl. del Conde, 4, 45002 Toledo", tags: ["🇮🇹 全 vegan", "Cremoso 烘焙", "寺院旁边"], story: "在 San Juan de los Reyes 修道院隔壁。全 vegan,椰奶拿铁很出名。坐窗边看古建筑。", hours: "09:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.4, distance: "0.2km" },
+      { id: "t-s1", cat: "stroll", name: "托莱多大教堂", name_es: "Catedral Primada Santa María", google_query: "Catedral Primada Toledo", address: "C. del Cardenal Cisneros, 1, 45002 Toledo", tags: ["哥特巅峰", "世界遗产", "€€"], story: "13 世纪开始的哥特主教堂,内部祭坛画是 El Greco 原作。如果想买纪念品,托莱多是兵刃之都,会有很多刀剑冰箱贴。建议去大教堂售票处买书刀,产自当地。", hours: "10:00-18:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.9, distance: "0.1km", hot: true },
+      { id: "t-s2", cat: "stroll", name: "Jovi Joyeros 中世纪首饰店", name_es: "Jovi Joyeros", google_query: "Jovi Joyeros Toledo", address: "C. de la Ciudad, 23, 45002 Toledo", tags: ["伊丽莎白风格", "中世纪首饰", "€€€"], story: "中世纪风格首饰店,伊丽莎白时期风格。如果喜欢银饰、复古戒指,这间是托莱多最出名的。", hours: "10:00-20:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image13.jpeg", rating: 4.7, distance: "0.2km" },
+      { id: "t-s3", cat: "stroll", name: "托莱多城堡", name_es: "Alcázar de Toledo", google_query: "Alcazar Toledo", address: "C. de la Subida, 2, 45002 Toledo", tags: ["山顶堡垒", "军事博物馆", "€€"], story: "山顶堡垒,曾是卡洛斯五世的皇宫,现在为军事博物馆。登顶可俯瞰托莱多全城。", hours: "10:00-17:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image24.jpeg", rating: 4.6, distance: "0.3km" },
+      { id: "t-s4", cat: "stroll", name: "Plaza de Zocodover", name_es: "Plaza de Zocodover", google_query: "Plaza Zocodover Toledo", address: "Pl. de Zocodover, 45001 Toledo", tags: ["老城广场", "必到", "免费"], story: "托莱多老城中心广场,从中世纪的市场演变至今。游客集散地,周边小吃和纪念品店密集。", hours: "全天", price: "免费", image: "https://622duan.github.io/slow-spain-pwa/images/image28.jpeg", rating: 4.5, distance: "0.1km" }
+    ],
+    cuenca: [
+      { id: "c-r1", cat: "restaurant", name: "Restaurante Recreo Peral", name_es: "Restaurante Recreo Peral", google_query: "Restaurante Recreo Peral Cuenca", address: "C. de San Pedro, 31, 16001 Cuenca", tags: ["🌟🌟🌟🌟🌟", "45 天熟成牛排", "小章鱼配青椒"], story: "Restaurante Recreo Peral 本地番茄沙拉、45 天熟成牛排、小章鱼配青椒、芝士蛋糕(流心超好吃)。本照片暂无,实地拍。", hours: "13:30-16:00 / 20:30-23:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.4km", hot: true },
+      { id: "c-r2", cat: "restaurant", name: "Bodeguita Capuz", name_es: "Bodeguita Capuz", google_query: "Bodeguita Capuz Cuenca", address: "C. de los Tiradores, 3, 16001 Cuenca", tags: ["🌟🌟🌟🌟", "伊比利亚黑猪肉", "茄汁配洋蓟菜"], story: "Bodeguita Capuz:伊比利亚黑猪肉、茄汁配洋蓟菜(Alcachofa)、脆皮五花肉、炸鱿鱼圈。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image14.jpeg", rating: 4.6, distance: "0.3km" },
+      { id: "c-r3", cat: "restaurant", name: "Grotte del Huecar", name_es: "Grotte del Huecar", google_query: "Grotte del Huecar Cuenca", address: "Camino del Recreo Peral, 16004 Cuenca", tags: ["🌟🌟🌟🌟", "洞穴氛围", "牛排汉堡"], story: "Grotte del huecar 洞穴氛围。牛排汉堡、伊比利亚酱猪肘、配菜土豆泥很不错。", hours: "13:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image15.jpeg", rating: 4.4, distance: "0.8km" },
+      { id: "c-r4", cat: "restaurant", name: "Casa Manzar", name_es: "Casa Manzar", google_query: "Casa Manzar Cuenca", address: "Pl. Mayor, 16001 Cuenca", tags: ["🌟🌟🌟🌟🌟", "古城中心", "Menu corto/largo"], story: "Casa Manzar 处于古城中心 Casco Histórico,分为长菜单和短菜单(Menú corto/largo)。前菜是全桌共享的(大家选一样的 2-3 款)。必点推荐:Cuenca 特色前菜 Ajoarriero(鳕鱼土豆泥)和特制的 Puré de patatas,地道的昆卡味道,细腻又香浓。主菜羊肉(Cordero)和朝鲜蓟(Alcachofa)。甜点时间:巧克力控闭眼点 Nido de Chocolate,他家的 Helado de Turrón(杏仁糖冰淇淋)也非常清爽惊艳。", hours: "13:00-16:00 / 20:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image17.jpeg", rating: 4.7, distance: "0.2km", hot: true },
+      { id: "c-r5", cat: "restaurant", name: "Gastrobar Gaia", name_es: "Gastrobar Gaia", google_query: "Gastrobar Gaia Cuenca", address: "C. de Colón, 51, 16002 Cuenca", tags: ["🌟🌟🌟🌟", "现代菜", "昆卡 Gaia"], story: "Gastrobar Gaia,地址 C. de Colón, 51, 16002 Cuenca。出酒店东南方向走两个路口。", hours: "13:00-16:00 / 20:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image19.jpeg", rating: 4.5, distance: "0.3km" },
+      { id: "c-r6", cat: "restaurant", name: "悬空之家餐厅(Casas Colgadas)", name_es: "Mesón Casas Colgadas", google_query: "Meson Casas Colgadas Cuenca", address: "C. Canónigos, s/n, 16001 Cuenca", tags: ["🌟🌟🌟🌟", "悬崖景观", "吊脚楼"], story: "悬空之家(Casas Colgadas)吊脚楼餐厅。就在悬屋正下方,露台看峡谷日落一绝。本照片暂无,实地拍。", hours: "13:00-16:00 / 20:00-23:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.1km" },
+      { id: "c-r7", cat: "restaurant", name: "Bar Alex Cocina Asiática", name_es: "Bar Alex", google_query: "Bar Alex Cuenca", address: "C. de Carretería, 19, 16001 Cuenca", tags: ["🌟🌟🌟", "中餐", "柠檬鸡"], story: "Bar Alex Cocina asiática 昆卡少见的中餐选择,柠檬鸡还可以。", hours: "12:00-16:00 / 19:00-23:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image16.jpeg", rating: 4, distance: "0.4km" },
+      { id: "c-c1", cat: "cafe", name: "Churrería de la Plaza de España", name_es: "Churrería de Antonio", google_query: "Churreria Plaza de España Cuenca", address: "Pl. de España, 2, 16001 Cuenca", tags: ["🥇 50 年老店", "油条+巧克力", "清晨 7 点开"], story: "Antonio 经营 50 年的传奇 churrería。每天做 400-450 根油条,清晨 5:15 起床。油条供应全城早市摊贩 + 老人院。「游客第一次来先看悬屋,第二次先来油条店」—— Antonio 语。", hours: "07:00-13:00", price: "€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.2km", hot: true },
+      { id: "c-s1", cat: "stroll", name: "悬空之家 Casas Colgadas", name_es: "Casas Colgadas de Cuenca", google_query: "Casas Colgadas Cuenca", address: "C. Canónigos, s/n, 16001 Cuenca", tags: ["14 世纪", "明信片", "必看"], story: "14 世纪的悬空木阳台屋,整个昆卡的灵魂。最佳拍摄点在对面圣保罗桥。", hours: "全天外观", price: "免费", image: "/images/placeholder.jpg", rating: 4.8, distance: "0.1km", hot: true },
+      { id: "c-s2", cat: "stroll", name: "圣保罗桥", name_es: "Puente de San Pablo", google_query: "Puente San Pablo Cuenca", address: "Puente de San Pablo, 16004 Cuenca", tags: ["悬屋最佳机位", "免费"], story: "从这座桥上拍悬屋是最经典的角度。步行穿过桥可以到达 Parador 酒店和峡谷观景点。", hours: "全天", price: "免费", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.3km" },
+      { id: "c-s3", cat: "stroll", name: "昆卡大教堂", name_es: "Catedral de Santa María y San Julián", google_query: "Catedral Cuenca", address: "Pl. Mayor, s/n, 16001 Cuenca", tags: ["哥特式", "€€"], story: "12-13 世纪的哥特式主教堂。第一座西班牙哥特式教堂,有彩色玻璃窗。", hours: "10:00-18:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.2km" },
+      { id: "c-s4", cat: "stroll", name: "AVENTURAS COLGADAS", name_es: "Aventuras Colgadas Multiaventura", google_query: "Aventuras Colgadas Cuenca multiaventura", address: "Camino del Recreo Peral, 16004 Cuenca", tags: ["攀岩", "漂流", "结伴行"], story: "酒店北部步行 15 分钟。瀑布、攀岩、漂流。需要联系导游,结伴而行。户外运动爱好者的天堂。", hours: "需预约", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.9km" },
+      { id: "c-s5", cat: "stroll", name: "Principes Park", name_es: "Parque de los Príncipes", google_query: "Parque Principes Cuenca", address: "C. de los Príncipes, 16004 Cuenca", tags: ["酒店旁", "公园", "免费"], story: "Hotel Exe Cuenca 旁的公园,绿树成荫,适合傍晚散步。", hours: "全天", price: "免费", image: "/images/placeholder.jpg", rating: 4.4, distance: "0.1km" },
+      { id: "c-s6", cat: "stroll", name: "昆卡自然公园", name_es: "Parque Natural de la Serranía de Cuenca", google_query: "Parque Natural Serrania Cuenca", address: "Cuenca 省周边,需自驾", tags: ["自然", "酒店东南 10min", "免费"], story: "酒店东南方向驾车 10 分钟。自然公园,峡谷、河流、原始森林,适合半日游。", hours: "全天", price: "免费", image: "/images/placeholder.jpg", rating: 4.7, distance: "10km" }
+    ],
+    valencia: [
+      { id: "v-r4", cat: "restaurant", name: "Sabbia", name_es: "Sabbia Beach Restaurant", google_query: "Sabbia Valencia beach", address: "Passeig Marítim de la Malva-rosa, 46011 Valencia", tags: ["🌟 海边漂亮饭", "棕榈树户外", "瓦伦西亚看海"], story: "Sabbia 海边漂亮饭。Malvarrosa 海滩边,白色遮阳棚 + 棕榈树,正对着地中海。椰子杯超出片。", hours: "13:00-16:00 / 20:00-23:30", price: "€€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image23.jpeg", rating: 4.6, distance: "4.0km" },
+      { id: "v-r1", cat: "restaurant", name: "Casa Carmela", name_es: "Casa Carmela", google_query: "Casa Carmela Valencia arroz", address: "C. del Conde de Altea, 48, 46005 Valencia", tags: ["🌟🌟🌟🌟🌟", "海鲜饭鼻祖", "蒜蓉大虾"], story: "Casa Carmela 正宗瓦伦西亚海鲜饭,点带虾的那种海鲜饭,普通款是鸡鸭兔蜗牛闷的(本地传统),还有蒜蓉大虾(最好预定餐厅)。本照片暂无。", hours: "13:00-16:00 / 20:30-23:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "1.2km", hot: true },
+      { id: "v-r2", cat: "restaurant", name: "Rincon 33", name_es: "Rincon 33", google_query: "Rincon 33 Valencia", address: "C. de Russafa, 33, 46004 Valencia", tags: ["🌟🌟🌟🌟🌟", "彭于晏同款", "蓝色墙"], story: "Rincon 33(彭于晏同款)有一面蓝色的墙可以拍照,海鲜饭有点咸两人起点,蜂蜜黄油烤虾推荐。", hours: "13:30-16:00 / 20:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image25.jpeg", rating: 4.6, distance: "1.0km" },
+      { id: "v-r3", cat: "restaurant", name: "Central Bar by Ricard Camarena", name_es: "Central Bar", google_query: "Central Bar Ricard Camarena Valencia", address: "Mercat Central, Plaça de la Ciutat de Bruges, s/n, 46001 Valencia", tags: ["🌟🌟🌟🌟🌟", "米其林厨师", "市场内"], story: "中央市场(Mercat Central de Valencia)周一至周六 7:00/7:30am ~ 14:30/15:00pm,周日关闭、餐厅 last order 也是 3 点。可以带现金,但大多数档口也收卡。市场内没有座位,想坐下来用餐可到「旁门入口」方向的餐厅区。Central Bar by Ricard Camarena 这家是个米其林厨师自己开的。", hours: "07:30-15:00 (last order 15:00)", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image28.jpeg", rating: 4.8, distance: "0.6km" },
+      { id: "v-d2", cat: "dessert", name: "Sukar Bakery", name_es: "Sukar Bakery", google_query: "Sukar Bakery Valencia", address: "C. de Sueca, 27, 46006 Valencia", tags: ["🌟🌟🌟🌟🌟", "开心果可颂", "焦糖面包"], story: "Sukar Bakery 开心果可颂和焦糖的这两款面包都好好吃,味道都好浓郁,但有点偏甜。面包口感很好,外脆内软,咬下去好满足。", hours: "08:00-20:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image29.jpeg", rating: 4.8, distance: "0.8km", hot: true },
+      { id: "v-d3", cat: "dessert", name: "Keik Cheesecake", name_es: "Keik Cheesecake Valencia", google_query: "Keik Cheesecake Valencia", address: "C. del Pintor Sorolla, 19, 46002 Valencia", tags: ["🌟🌟🌟🌟", "流心巴斯克", "焦糖味重"], story: "Keik cheesecake 瓦伦西亚流心的巴斯克,价格比巴塞和马德里的还要贵。焦糖味好重,口感也很软滑,但略嫌芝士味不够。", hours: "10:00-20:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image30.jpeg", rating: 4.5, distance: "0.7km" },
+      { id: "v-c1", cat: "cafe", name: "FAV COFFEE", name_es: "FAV COFFEE", google_query: "FAV Coffee Valencia", address: "Carrer d'Andrés Mancebo, 40, 46023 València, Espanya", tags: ["🌟🌟🌟🌟", "特调欧蕾", "8-20 点"], story: "FAV COFFEE 酒店附近,8 点 -20 点,Carrer d'Andrés Mancebo, 40, 46023 València, Espanya。分层拿铁和咖啡欧蕾超出片。", hours: "08:00-20:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image31.jpeg", rating: 4.6, distance: "0.3km" },
+      { id: "v-d1", cat: "dessert", name: "Horchatería Santa Catalina", name_es: "Horchatería Santa Catalina", google_query: "Horchateria Santa Catalina Valencia", address: "Plaça de Santa Caterina, 6, 46001 València", tags: ["🌟🌟🌟🌟🌟", "Horchata 鼻祖", "大教堂隔壁"], story: "店名:Horchata Santa Catalina,地址 Plaça de Santa Caterina 6,46001 València,Valencia。黄金地段,就在大教堂隔壁。Horchata 巴旦杏仁糖浆一种清凉饮料(瓦伦西亚豆浆)。本照片暂无。", hours: "08:30-21:30", price: "€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.5km", hot: true },
+      { id: "v-r5", cat: "restaurant", name: "Café de las Horas", name_es: "Café de las Horas", google_query: "Cafe de las Horas Valencia", address: "C/ del Comte d'Almodóvar, 1, Ciutat Vella, 46003 València", tags: ["🌟🌟🌟🌟", "Agua de Valencia 最佳", "新巴洛克内饰"], story: "瓦伦西亚主教堂和丝绸交易所附近橙子主题餐厅(实际为 Café de las Horas,Plaza de la Virgen 往南一条街)。两款招牌:阿佩罗橙光(Aperol Spritz)和瓦伦西亚之水(Agua de Valencia)。瓦伦西亚之水好喝,但基底是伏特加,别贪杯。本照片暂无。", hours: "10:00-01:00 (周末更晚)", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.5km" },
+      { id: "v-d4", cat: "dessert", name: "Orxateria Daniel", name_es: "Orxateria Daniel", google_query: "Orxateria Daniel Valencia", address: "Av. del Port, 13, 46023 Valencia", tags: ["西班牙老牌", "Horchata", "€"], story: "Orxateria Daniel 西班牙老牌咖啡店。本照片暂无。", hours: "09:00-22:00", price: "€", image: "/images/placeholder.jpg", rating: 4.4, distance: "2.5km" },
+      { id: "v-s1", cat: "stroll", name: "中央市场 Mercado Central", name_es: "Mercat Central de Valencia", google_query: "Mercat Central Valencia", address: "Plaça de la Ciutat de Bruges, s/n, 46001 Valencia", tags: ["🌟 1928 现代主义", "周一至周六", "周日关"], story: "中央市场(Mercat Central de Valencia)周一至周六 7:00/7:30am ~ 14:30/15:00pm,周日关闭、餐厅 last order 也是 3 点。可以带现金,但大多数档口也收卡。市场内没有座位,想坐下来用餐可到「旁门入口」方向的餐厅区(Central Bar by Ricard Camarena)。", hours: "周一至周六 07:30-15:00", price: "免费", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.6km", hot: true },
+      { id: "v-s2", cat: "stroll", name: "瓦伦西亚主教堂", name_es: "Catedral de Valencia", google_query: "Catedral Valencia", address: "Pl. de la Reina, s/n, 46001 Valencia", tags: ["🌟 圣杯礼拜堂", "周边自助橙汁"], story: "据传存放着最后的晚餐圣杯。教堂内有圣杯礼拜堂。出来找主教堂时,周边超市有自助鲜榨橙汁机,非常推荐,不要买路边的(会苦)。", hours: "10:30-17:30", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.5km" },
+      { id: "v-s3", cat: "stroll", name: "丝绸交易所 La Lonja de la Seda", name_es: "La Lonja de la Seda", google_query: "Lonja de la Seda Valencia", address: "C. de los Lineros, 2, 46001 Valencia", tags: ["世界遗产", "哥特晚期", "€€"], story: "15 世纪哥特晚期的丝绸交易中心,联合国世界遗产。旋涡状柱子被誉为石雕杰作。和主教堂紧挨着,一起逛。", hours: "10:00-19:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "0.5km" },
+      { id: "v-s4", cat: "stroll", name: "El Raconet de la Cerámica", name_es: "El Raconet de la Ceràmica", google_query: "El Raconet Ceramica Valencia", address: "C. del Poeta Querol, 6, 46002 Valencia", tags: ["手绘陶瓷", "伴手礼", "€€"], story: "El Raconet de la Cerámica 手绘陶瓷店。瓦伦西亚马尼塞斯(MANISES)是西班牙陶瓷之都,可以挑西班牙风情盘子、瓷砖,送人或自己用都好。本照片暂无。", hours: "10:00-20:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.6km" },
+      { id: "v-s5", cat: "stroll", name: "Malvarrosa 海滩", name_es: "Platja de la Malva-rosa", google_query: "Playa Malvarrosa Valencia", address: "Passeig Marítim de la Malva-rosa, 46011 Valencia", tags: ["🌟 看日落", "免费", "瓦伦西亚之水"], story: "瓦伦西亚本地人的海滩。日落时分来一杯瓦伦西亚之水(Agua de Valencia: Cava+橙汁+金酒+伏特加,小心后劲)。", hours: "全天", price: "免费", image: "/images/placeholder.jpg", rating: 4.7, distance: "4.0km" },
+      { id: "v-s6", cat: "stroll", name: "Sorolla 橙子伴手礼店", name_es: "Tienda Naranjas Sorolla", google_query: "naranjas Sorolla Valencia", address: "Estación del Norte 附近, 46006 Valencia", tags: ["🌟 橙子无花果酱", "伴手礼", "火车离站前"], story: "sorolla 火车站的橙子店,橙子、橙子无花果果酱等等伴手礼。火车离站前买刚好。本照片暂无。", hours: "09:00-21:00", price: "€€", image: "/images/placeholder.jpg", rating: 4.7, distance: "1.0km" }
+    ],
+    barcelona: [
+      { id: "b-r2", cat: "restaurant", name: "Quimet & Quimet", name_es: "Quimet & Quimet", google_query: "Quimet Quimet Barcelona", address: "Carrer del Poeta Cabanyes, 25, Sants-Montjuïc, 08004 Barcelona", tags: ["🌟 老牌 Tapas", "Montaditos", "€€€"], story: "巴塞罗那传奇 Tapas 吧,店面小但精致。Montaditos 三三明治(烟熏三文鱼、虾、黑鱼子酱面包)、Tapas 拼盘是经典款。", hours: "12:00-16:00 / 19:00-23:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image32.jpeg", rating: 4.7, distance: "1.5km" },
+      { id: "b-r5", cat: "restaurant", name: "Bilbao Berria", name_es: "Bilbao Berria", google_query: "Bilbao Berria Barcelona pinchos", address: "Carrer de Santa Maria, 6, 08003 Barcelona", tags: ["🌟 主教堂旁", "€1/个 pinchos", "€"], story: "巴塞主教堂旁。4.99 欧 5 个 Pinchos,€1/个。品种多,西班牙北部风格小吃。", hours: "11:00-23:00", price: "€", image: "https://622duan.github.io/slow-spain-pwa/images/image33.jpeg", rating: 4.4, distance: "0.4km" },
+      { id: "b-r9", cat: "restaurant", name: "Mercat de Santa Caterina", name_es: "Mercat de Santa Caterina", google_query: "Mercat Santa Caterina Barcelona", address: "Av. de Francesc Cambó, 16, 08003 Barcelona", tags: ["🌟 波浪屋顶", "本地市场", "€€"], story: "波浪状屋顶的现代主义市场,本地人买菜的市集。建筑本身就是亮点,菜摊和简餐小摊都有。生蚝、金枪鱼、三文鱼、龙虾腿都很新鲜,可以直接买了吃。", hours: "07:30-15:30", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image34.jpeg", rating: 4.5, distance: "0.7km" },
+      { id: "b-r6", cat: "restaurant", name: "La Flauta", name_es: "La Flauta", google_query: "La Flauta Barcelona", address: "Carrer d'Aribau, 23, 08011 Barcelona", tags: ["🌟 人气 Tapas", "鹅肝牛排经典", "店员会中文"], story: "人气 Tapas 店,闭眼点不踩雷。鹅肝牛排是经典款、炸鱿鱼圈、香槟 Sangría 很清爽。店员会中文(疑似投流,实际味道不确定,自己定)。", hours: "13:00-16:00 / 20:00-00:00", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image36.jpeg", rating: 4.5, distance: "1.0km" },
+      { id: "b-r7", cat: "restaurant", name: "Casa Costa", name_es: "Casa Costa Barcelona", google_query: "Casa Costa Barcelona Baluard", address: "C/del Baluard, 124, Ciutat Vella, 08003 Barcelona", tags: ["🌟 海边窗景", "巴塞罗那海滩", "€€€"], story: "巴塞罗那海滩窗景餐厅。C/del Baluard, 124, Ciutat Vella, 08003。Barceloneta 区的老牌海鲜餐厅,正对海滩。", hours: "13:00-16:00 / 20:00-23:30", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image37.jpeg", rating: 4.5, distance: "1.8km" },
+      { id: "b-d1", cat: "dessert", name: "JONCAKE", name_es: "JONCAKE Cheesecake", google_query: "JONCAKE Barcelona cheesecake", address: "Carrer de Verdi, 24, 08012 Barcelona", tags: ["🌟 巨好吃", "巴斯克蛋糕", "€€"], story: "巨好吃的巴斯克蛋糕。不知道有多好吃——攻略都说不出来,去了才知道。门面挂着 TELL PEOPLE YOU LOVE THEM,氛围很轻松。", hours: "10:00-20:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image38.jpeg", rating: 4.9, distance: "1.2km", hot: true },
+      { id: "b-r8", cat: "restaurant", name: "Vinitus", name_es: "Vinitus", google_query: "Vinitus Barcelona Batllo", address: "Carrer de Provença, 229, 08008 Barcelona", tags: ["🌟 巴特罗之家附近", "€€€"], story: "巴特罗之家附近,Tapas 餐厅。", hours: "12:00-01:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.4, distance: "0.8km" },
+      { id: "b-r4", cat: "restaurant", name: "Los Caracoles", name_es: "Los Caracoles", google_query: "Los Caracoles Barcelona", address: "Carrer dels Escudellers, 47, 08002 Barcelona", tags: ["🌟 酱汁蜗牛", "百年老店", "黑色海鲜饭"], story: "酱汁蜗牛(不是国内田螺,有触角的蜗牛)。海鲜饭可以点单人份,经典款是黑色海鲜饭(墨鱼汁饭)。百年老店,门口烤鸡很显眼。", hours: "13:00-00:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image40.jpeg", rating: 4.4, distance: "0.5km" },
+      { id: "b-r1", cat: "restaurant", name: "Bar Cañete", name_es: "Bar Cañete", google_query: "Bar Cañete Barcelona", address: "Carrer de la Unió, 17, Ciutat Vella, 08001 Barcelona", tags: ["🌟 Jennie 同款", "米其林", "需预约"], story: "Jennie 同款餐厅。米其林餐厅,网上推荐率高,但不一定有位置,大概率要预约。据说属于完全不踩雷。", hours: "13:00-16:00 / 19:30-23:30", price: "€€€", image: "https://622duan.github.io/slow-spain-pwa/images/image42.jpeg", rating: 4.7, distance: "0.2km", hot: true },
+      { id: "b-r3", cat: "restaurant", name: "El Xampanyet", name_es: "El Xampanyet", google_query: "El Xampanyet Barcelona", address: "Carrer de Montcada, 22, 08003 Barcelona", tags: ["🌟 加利西亚章鱼", "巴塞排队王", "€€€"], story: "整体价格偏贵。可以点猪肉青椒、墨鱼细面、皮皮虾。招牌 Pulpo a la Gallega 加利西亚章鱼、蒜香小鱿鱼/墨鱼、Pimientos de Padrón 西班牙炸青椒。巴塞罗那排队王,但可以站在 bar 吃。", hours: "12:00-01:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.6, distance: "0.6km", hot: true },
+      { id: "b-d2", cat: "dessert", name: "Pastelería Hofmann", name_es: "Pastelería Hofmann", google_query: "Hofmann Pasteleria Barcelona Flassaders", address: "Carrer dels Flassaders, 44, Ciutat Vella, 08003 Barcelona", tags: ["🌟 巴塞甜品天花板", "招牌马斯卡彭可頌", "€€€"], story: "巴塞罗那甜品天花板。米其林女主厨 Mey Hofmann 创立,招牌是 2010 年获西班牙奶油可頌大赛金牌的马斯卡彭可頌(Mascarpone Croissant)。Carrer dels Flassaders, 44, El Born。", hours: "周一至周六 09:00-19:00 / 周日 09:00-14:00", price: "€€€", image: "/images/placeholder.jpg", rating: 4.9, distance: "0.8km", hot: true },
+      { id: "b-c1", cat: "cafe", name: "Nomad Frutas Selectas", name_es: "Nomad Frutas Selectas", google_query: "Nomad Frutas Selectas Barcelona", address: "Carrer de Pujades, 95, Sant Martí, 08005 Barcelona", tags: ["🥇 全球百佳 #16", "手冲", "€€"], story: "全球百佳咖啡馆第 16 名(Nomad Frutas Selectas)。Carrer de Pujades, 95, Sant Martí。本地精品,Espresso 和手冲都在水准之上。", hours: "08:00-19:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image44.jpeg", rating: 4.9, distance: "2.0km", hot: true },
+      { id: "b-c2", cat: "cafe", name: "D.Origen Coffee Roasters", name_es: "D.Origen Coffee Roasters", google_query: "D.Origen Coffee Roasters Barcelona", address: "Carrer de Casp, 48, Eixample, 08010 Barcelona", tags: ["🥇 全球百佳 #83", "烘焙", "€€"], story: "全球百佳咖啡馆第 83 名。Carrer de Casp, 48, Eixample。", hours: "08:00-19:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image45.jpeg", rating: 4.8, distance: "1.0km" },
+      { id: "b-c3", cat: "cafe", name: "Right Side Coffee", name_es: "Right Side Coffee", google_query: "Right Side Coffee Barcelona", address: "Carrer de Pau Claris, 142, 08009 Barcelona", tags: ["🌟 阿芙佳朵必点", "香草籽 Gelato", "€€"], story: "强烈推荐阿芙佳朵(Affogato)。上面的 Gelato 是含有香草籽的,口感非常细腻。", hours: "08:00-19:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image46.jpeg", rating: 4.7, distance: "0.9km", hot: true },
+      { id: "b-c4", cat: "cafe", name: "Feparture", name_es: "Feparture Café", google_query: "Feparture Barcelona cafe", address: "Carrer de Viladomat, 121, 08015 Barcelona", tags: ["木质装修", "Flat White / 拿铁", "€€"], story: "店面不大,木质装修。Flat White 和拿铁都还可以。", hours: "08:00-19:00", price: "€€", image: "https://622duan.github.io/slow-spain-pwa/images/image43.jpeg", rating: 4.5, distance: "1.5km" },
+      { id: "b-s1", cat: "stroll", name: "巴塞罗那 — 9 月活动汇总", name_es: "Barcelona — Eventos septiembre", google_query: "Barcelona La Merce Piromusical Sagrada Familia", address: "Passeig de Lluís Companys / Plaça de Catalunya / Barceloneta 海滩 / Carrer de Montcada 15", tags: ["🌟 时间窗口活动", "9.18-10.4", "免费-€€"], story: "巴塞罗那 9 月-10 月初时间窗口活动汇总:9.18-27 加泰图书周(Passeig de Lluís Companys,本地创作者聚集的设计文化活动)。9.23-27 La Mercè 巴塞罗那一年一度重要城市庆典,火龙表演、人塔、巨人巡游、街头演出。9.25-10.4 Piromusical 音乐焰火秀位于 Barceloneta 海边社区节、音乐及传统文化表演。9.26 19 点之后城里有奔火节,21 点之后巴塞罗那海滩有无人机表演。附加:毕加索博物馆(Carrer de Montcada 15,蓝色时期早期作品)。巴塞罗那弗朗明戈艺术表演。Pastelería Hofmann 巴塞罗那甜品天花板。", hours: "活动时间", price: "免费-€€", image: "https://622duan.github.io/slow-spain-pwa/images/image47.jpeg", rating: 4.9, distance: "0.0km", hot: true }
+    ]
+  },
+
+  // ================ 西语速学 ================
+  spanish: {
+    categories: [
+      { id: "food", name: "点餐吃饭", icon: "fa-utensils", color: "#E63946" },
+      { id: "directions", name: "问路指路", icon: "fa-map-location-dot", color: "#2A9D8F" },
+      { id: "shopping", name: "购物砍价", icon: "fa-bag-shopping", color: "#F4A261" },
+      { id: "greeting", name: "寒暄客套", icon: "fa-handshake", color: "#6F1D1B" },
+      { id: "emergency", name: "紧急情况", icon: "fa-circle-exclamation", color: "#264653" }
+    ],
+    phrases: [
+      // 点餐
+      { id: "f1", cat: "food", es: "¿Qué recomienda?", zh: "您推荐什么?", ipa: "[ke re-komjen-da]", tone: "ke lei 靠木见 打" },
+      { id: "f2", cat: "food", es: "La cuenta, por favor", zh: "麻烦买单", ipa: "[la kwen-ta por fa-bor]", tone: "啦 困塔 波尔 法伯尔" },
+      { id: "f3", cat: "food", es: "Una mesa para dos", zh: "两人位的桌子", ipa: "[u-na me-sa pa-ra dos]", tone: "乌那 美萨 巴拉 多斯" },
+      { id: "f4", cat: "food", es: "Sin picante, por favor", zh: "请不要辣", ipa: "[sin pi-kan-te por fa-bor]", tone: "辛 皮看特 波尔 法伯尔" },
+      { id: "f5", cat: "food", es: "Poca sal, por favor", zh: "请少放盐", ipa: "[po-ka sal por fa-bor]", tone: "波卡 萨尔 波尔 法伯尔" },
+      { id: "f6", cat: "food", es: "Pon menos sal", zh: "少放盐(短)", ipa: "[pon me-nos sal]", tone: "蓬 美诺斯 萨尔" },
+      { id: "f7", cat: "food", es: "Está delicioso", zh: "非常好吃", ipa: "[es-ta de-li-θjo-so]", tone: "埃斯塔 德里西奥索" },
+      { id: "f8", cat: "food", es: "Otra cerveza, por favor", zh: "再来一杯啤酒", ipa: "[o-tra θer-be-θa por fa-bor]", tone: "奥特拉 塞尔贝萨 波尔 法伯尔" },
+      // 问路
+      { id: "d1", cat: "directions", es: "¿Dónde está...?", zh: "...在哪里?", ipa: "[don-de es-ta]", tone: "东待 埃斯塔" },
+      { id: "d2", cat: "directions", es: "¿Está lejos?", zh: "远吗?", ipa: "[es-ta le-xos]", tone: "埃斯塔 雷霍斯" },
+      { id: "d3", cat: "directions", es: "¿Cómo llego a...?", zh: "怎么去...?", ipa: "[ko-mo ʎe-go a]", tone: "扣莫 列依戈 阿" },
+      { id: "d4", cat: "directions", es: "Gire a la izquierda", zh: "向左转", ipa: "[xi-re a la is-kjer-da]", tone: "希雷 啊啦 伊斯凯尔达" },
+      { id: "d5", cat: "directions", es: "Estoy perdido", zh: "我迷路了", ipa: "[es-toj per-di-do]", tone: "埃斯托依 佩尔迪多" },
+      // 购物
+      { id: "s1", cat: "shopping", es: "¿Cuánto cuesta?", zh: "多少钱?", ipa: "[kwan-to kwes-ta]", tone: "宽托 奎斯塔" },
+      { id: "s2", cat: "shopping", es: "¿Tiene algo más barato?", zh: "有便宜点的吗?", ipa: "[tje-ne al-go mas ba-ra-to]", tone: "切内 阿尔戈 马斯 巴拉托" },
+      { id: "s3", cat: "shopping", es: "Solo estoy mirando", zh: "我只是看看", ipa: "[so-lo es-toj mi-ran-do]", tone: "索洛 埃斯托依 米兰多" },
+      { id: "s4", cat: "shopping", es: "¿Puedo pagar con tarjeta?", zh: "可以刷卡吗?", ipa: "[pwe-do pa-gar kon tar-xe-ta]", tone: "普韦多 帕加尔 空 塔尔赫塔" },
+      // 寒暄
+      { id: "g1", cat: "greeting", es: "¡Hola! ¿Cómo estás?", zh: "你好!你怎么样?", ipa: "[o-la ko-mo es-tas]", tone: "哦拉 扣莫 埃斯塔斯" },
+      { id: "g2", cat: "greeting", es: "Mucho gusto", zh: "很高兴认识你", ipa: "[mu-tʃo gus-to]", tone: "木秋 古斯托" },
+      { id: "g3", cat: "greeting", es: "Por nada", zh: "不客气", ipa: "[por na-da]", tone: "波尔 那达" },
+      { id: "g4", cat: "greeting", es: "No hablo español", zh: "我不会说西语", ipa: "[no a-blo es-pa-ɲol]", tone: "诺 阿布洛 埃斯帕尼奥尔" },
+      { id: "g5", cat: "greeting", es: "¿Hablas inglés?", zh: "你会说英语吗?", ipa: "[a-blas in-gles]", tone: "阿布拉斯 英格莱斯" },
+      { id: "g6", cat: "greeting", es: "¡Buen provecho!", zh: "祝你好胃口!", ipa: "[bwen pro-be-tʃo]", tone: "布温 普罗贝秋" },
+      // 紧急
+      { id: "e1", cat: "emergency", es: "¡Ayuda!", zh: "救命!", ipa: "[a-ʝu-da]", tone: "阿尤达" },
+      { id: "e2", cat: "emergency", es: "Llame a la policía", zh: "请叫警察", ipa: "[ʎa-me a la po-li-θja]", tone: "雅梅 啊啦 波利西亚" },
+      { id: "e3", cat: "emergency", es: "Necesito un médico", zh: "我需要医生", ipa: "[ne-θe-si-to un me-di-ko]", tone: "内塞西托 温 美迪科" },
+      { id: "e4", cat: "emergency", es: "Me he perdido", zh: "我迷路了", ipa: "[me e per-di-do]", tone: "梅 诶 佩尔迪多" },
+      { id: "e5", cat: "emergency", es: "No entiendo", zh: "我听不懂", ipa: "[no en-tjen-do]", tone: "诺 恩见多" },
+      { id: "e6", cat: "emergency", es: "¿Dónde está el hospital?", zh: "医院在哪里?", ipa: "[don-de es-ta el os-pi-tal]", tone: "东待 埃斯塔 埃尔 奥斯皮塔尔" }
+    ]
+  },
+
+  // ================ 时段 ================
+  timeSlots: [
+    { id: "morning", name: "上午", icon: "fa-mug-hot", range: "07-11" },
+    { id: "lunch", name: "午餐", icon: "fa-utensils", range: "11-15" },
+    { id: "tea", name: "下午茶", icon: "fa-martini-glass-citrus", range: "15-18" },
+    { id: "dinner", name: "晚餐", icon: "fa-wine-glass", range: "18-22" },
+    { id: "night", name: "夜间", icon: "fa-moon", range: "22-02" }
+  ],
+
+  // ================ 类别元数据 ================
+  categoryMeta: {
+    restaurant: { name: "餐厅", icon: "fa-utensils", color: "#E63946", bg: "bg-tomato/10", text: "text-tomato" },
+    dessert: { name: "甜品", icon: "fa-ice-cream", color: "#F4A261", bg: "bg-sand/20", text: "text-wine" },
+    cafe: { name: "咖啡", icon: "fa-mug-hot", color: "#6F1D1B", bg: "bg-wine/10", text: "text-wine" },
+    stroll: { name: "闲逛", icon: "fa-shoe-prints", color: "#2A9D8F", bg: "bg-olive/10", text: "text-olive" }
+  }
+};
+
+// ================ 真实评价 (从攻略 + 网络) ================
+window.SLOW_SPAIN.reviews = {
+  // === 马德里 ===
+  "m-r1": [
+    { src: "Google", rating: 4.8, text: "World's 101 Best Steak Restaurants 排名第五不是吹的。干式熟成 200g 牛排入口即化,服务非常专业。", lang: "zh" }
+  ],
+  "m-r2": [
+    { src: "攻略", rating: 5.0, text: "1725 年开业,吉尼斯认证世界最老。烤乳猪皮脆肉嫩,海明威《太阳照常升起》里点名。蛤蜊黄油焗很很香,冷汤季节限定。", lang: "zh" },
+    { src: "TripAdvisor", rating: 4.7, text: "A must-visit in Madrid — historical dining at its finest. The roast suckling pig is exactly as Hemingway described.", lang: "en" }
+  ],
+  "m-d1": [
+    { src: "攻略", rating: 4.7, text: "类似家庭作坊,店主就是蛋糕师。中午 1 点左右冰柜很多蛋糕卖完了。胚酥度好于其他巴斯克,口感统一。", lang: "zh" }
+  ],
+  "m-c1": [
+    { src: "World's 100 Best", rating: 4.8, text: "Spanish #19 殿堂级咖啡,可买豆子。手冲必尝,深烘热浓缩特别香。", lang: "zh" },
+    { src: "Google", rating: 4.9, text: "Minimalist yet vibrant design, friendly service. House-roasted coffee, wide range of filter options. Outstanding.", lang: "en" }
+  ],
+  "m-c6": [
+    { src: "攻略", rating: 4.4, text: "店员推荐开心果拿铁。Pastora 哥伦比亚豆可选,阳光很好的店面。", lang: "zh" }
+  ],
+  "m-c7": [
+    { src: "攻略", rating: 4.5, text: "百年老店。红袋子经典款,白袋子单品产地款,深烘浅烘都有。本地人天天来。", lang: "zh" }
+  ],
+  "m-s1": [
+    { src: "攻略", rating: 4.6, text: "Palacio Santa Bárbara 手工艺人集市。9.18 周五 17:00-21:00 开放,周末全天。免费入场。", lang: "zh" }
+  ],
+
+  // === 托莱多 ===
+  "t-r1": [
+    { src: "攻略", rating: 5.0, text: "🌟🌟🌟🌟🌟 猪肋排软烂,鲜榨橙汁,菜单丰富。必到。", lang: "zh" }
+  ],
+  "t-r5": [
+    { src: "攻略", rating: 5.0, text: "🌟🌟🌟🌟🌟 服务员态度好,会仔细介绍菜品。鹿肉吐司嫩如三文鱼,酸甜酱。牛尾千层面也很棒。", lang: "zh" }
+  ],
+  "t-r6": [
+    { src: "攻略", rating: 5.0, text: "🌟🌟🌟🌟🌟 招牌 Bomba 薯球里面是肉末配辣番茄。Carcamusas 只有托莱多有,猪肉嫩含血肠。", lang: "zh" }
+  ],
+  "t-d1": [
+    { src: "攻略", rating: 5.0, text: "🌟🌟🌟🌟🌟 2024 西班牙芝士蛋糕冠军。蛋糕流心不会很甜,怕甜党可冲。", lang: "zh" },
+    { src: "Google", rating: 4.9, text: "Premiado Mejor Queso 2024. The cheesecake is liquid-centered and not too sweet. A must-visit in Toledo.", lang: "en" }
+  ],
+  "t-c1": [
+    { src: "攻略", rating: 4.8, text: "🌟🌟🌟🌟🌟 西班牙油条店。热巧和意式浓缩都推荐,咖啡很香醇(喝热的!!)。", lang: "zh" }
+  ],
+  "t-c4": [
+    { src: "TripAdvisor", rating: 4.8, text: "IL CAPPUCCINO — Tripadvisor Travellers' Choice 2022. Top 10% of world's best establishments. Owned by Andrea, an expert, precise, and welcoming barista.", lang: "en" },
+    { src: "Google", rating: 4.9, text: "El mejor café de Toledo. Specialty coffee, V60, La Marzocco equipment. Excellent.", lang: "en" }
+  ],
+  "t-c5": [
+    { src: "Google", rating: 4.8, text: "Thrilled to find this wonderful coffee shop. Lovely women, excellent coffee and treats. Perfect change from the touristic places. Highly recommend.", lang: "en" }
+  ],
+  "t-c6": [
+    { src: "TripAdvisor", rating: 4.6, text: "If you think Toledo is more touristy than trendy, you clearly haven't dipped your hipster detector into the cool confines of El Internacional. Slow food, vintage armchairs, books. Perfect place to unwind.", lang: "en" }
+  ],
+  "t-s1": [
+    { src: "攻略", rating: 5.0, text: "🌟🌟🌟🌟🌟 13 世纪开始的哥特主教堂,内部祭坛画是 El Greco 原作。兵刃之都,大教堂售票处可买书刀。", lang: "zh" }
+  ],
+
+  // === 昆卡 ===
+  "c-r1": [
+    { src: "攻略", rating: 4.7, text: "本地番茄沙拉、45 天熟成牛排、小章鱼配青椒、芝士蛋糕(流心超好吃)。", lang: "zh" }
+  ],
+  "c-r4": [
+    { src: "攻略", rating: 4.7, text: "古城中心。必点 Ajoarriero 鳕鱼土豆泥。甜点 Nido de Chocolate 巧克力控必点。", lang: "zh" }
+  ],
+  "c-c1": [
+    { src: "Cadena SER", rating: 4.7, text: "Antonio 经营 50 年的传奇油条店。「游客第一次来先看悬屋,第二次先来油条店」—— Antonio 语。清晨 7 点开。", lang: "zh" },
+    { src: "Google", rating: 4.8, text: "La churrería más mítica de Cuenca. 50 años al pie del negocio. Churros perfectos cada mañana. Una institución.", lang: "es" }
+  ],
+  "c-s1": [
+    { src: "攻略", rating: 4.8, text: "🌟 14 世纪的悬空木阳台屋,整个昆卡的灵魂。最佳拍摄点在对面圣保罗桥。", lang: "zh" }
+  ],
+
+  // === 瓦伦西亚 ===
+  "v-r1": [
+    { src: "攻略", rating: 4.7, text: "🌟 1898 开业,海明威笔下的瓦伦西亚海鲜饭原型。蒜蓉大虾最好预定。", lang: "zh" }
+  ],
+  "v-d1": [
+    { src: "攻略", rating: 4.7, text: "🌟 Horchata 鼻祖。黄金地段,大教堂隔壁。配 Fartón 蘸着吃是经典。", lang: "zh" }
+  ],
+  "v-d2": [
+    { src: "攻略", rating: 4.8, text: "🌟 开心果可颂和焦糖面包都很好。味道浓郁,但略偏甜。外脆内软。", lang: "zh" }
+  ],
+  "v-s1": [
+    { src: "攻略", rating: 4.7, text: "🌟 1928 年现代主义建筑,300 多个摊位。Horchata + Fartons 是当地经典搭配。周一至周六 7-15,周日关闭。", lang: "zh" }
+  ],
+
+  // === 巴塞罗那 ===
+  "b-r1": [
+    { src: "攻略", rating: 4.7, text: "🌟 Jennie 同款。米其林推荐,大概率要预约。Raval 老牌 Tapas,完全不踩雷。", lang: "zh" }
+  ],
+  "b-r3": [
+    { src: "攻略", rating: 4.6, text: "整体价格偏贵。点猪肉青椒、墨鱼细面、皮皮虾。Pulpo a la Gallega 加利西亚章鱼是招牌。", lang: "zh" }
+  ],
+  "b-d1": [
+    { src: "攻略", rating: 4.9, text: "🌟 巨好吃的巴斯克蛋糕。具体哪里好吃?攻略都说不出来的那种,去了就知道。", lang: "zh" }
+  ],
+  "b-c1": [
+    { src: "World's 100 Best", rating: 4.9, text: "🌟 Spanish #16 全球第 16。Best for: The most refined overall coffee experience in Barcelona. Espresso is consistently bright and balanced.", lang: "en" },
+    { src: "攻略", rating: 4.9, text: "全球百佳咖啡馆第 16 名。Poblenou 工业区的精品,手冲和 Espresso 都在水准之上。", lang: "zh" }
+  ],
+  "b-c2": [
+    { src: "World's 100 Best", rating: 4.8, text: "🌟 Spanish #83 全球第 83。Located inside Casa Calvet (Gaudí building). 3D-printed furniture from recycled plastic + coffee grounds.", lang: "en" }
+  ],
+  "b-c3": [
+    { src: "攻略", rating: 4.7, text: "🌟 强烈推荐阿芙佳朵。上面的 Gelato 含香草籽,口感非常细腻。", lang: "zh" }
+  ],
+  "b-s1": [
+    { src: "攻略", rating: 4.6, text: "🌟 1840 年开始的市集。门口第一摊鲜切果汁是巴塞罗那的味觉地标。", lang: "zh" }
+  ],
+  "b-s4": [
+    { src: "攻略", rating: 4.9, text: "🌟 1882 年动工至今未完工,高迪用 43 年只完成 1/4。建议提前买票预约。", lang: "zh" }
+  ],
+  "b-s5": [
+    { src: "攻略", rating: 4.9, text: "🌟 9.23-27 巴塞罗那一年一度重要城市庆典。火龙、人塔、巨人巡游、街头演出。", lang: "zh" }
+  ]
+};
+
+// 工具函数
+window.SS = {
+  currentTimeSlot() {
+    const h = new Date().getHours();
+    if (h >= 7 && h < 11) return "morning";
+    if (h >= 11 && h < 15) return "lunch";
+    if (h >= 15 && h < 18) return "tea";
+    if (h >= 18 && h < 22) return "dinner";
+    return "night";
+  },
+  greeting() {
+    const h = new Date().getHours();
+    if (h < 11) return "早上好";
+    if (h < 14) return "中午好";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  },
+  findSpot(id) {
+    const all = Object.values(window.SLOW_SPAIN.spots).flat();
+    return all.find(s => s.id === id);
+  },
+  findCity(id) {
+    return window.SLOW_SPAIN.cities.find(c => c.id === id);
+  },
+  haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  },
+  googleMapsUrl(spot) {
+    if (!spot) return '';
+    if (spot.google_query) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.google_query)}`;
+    }
+    if (spot.lat && spot.lng) {
+      return `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+    }
+    return '';
+  },
+  googleMapsWalkingDirections(fromLat, fromLng, spot) {
+    if (!spot) return '';
+    if (spot.google_query) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(spot.google_query)}&travelmode=walking`;
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${fromLat},${fromLng}&travelmode=walking`;
+  },
+  // ============== 行程追踪 ==============
+  journeyOrder: ['madrid', 'toledo', 'cuenca', 'valencia', 'barcelona', 'madrid'],
+  getJourneyIdx() {
+    const v = parseInt(localStorage.getItem('slow_spain_journey_idx'));
+    return isNaN(v) ? 4 : Math.min(5, Math.max(0, v));
+  },
+  setJourneyIdx(idx) {
+    localStorage.setItem('slow_spain_journey_idx', String(Math.min(5, Math.max(0, idx))));
+  },
+  getCurrentCityId() {
+    return this.journeyOrder[this.getJourneyIdx()];
+  },
+  getCurrentCity() {
+    return window.SLOW_SPAIN.cities.find(c => c.id === this.getCurrentCityId());
+  },
+  getCurrentDays() {
+    const map = { 0: 'Day 1-2', 1: 'Day 3', 2: 'Day 4', 3: 'Day 5-6', 4: 'Day 7-10', 5: 'Day 11' };
+    return map[this.getJourneyIdx()];
+  },
+  advanceJourney() {
+    const cur = this.getJourneyIdx();
+    if (cur < 5) this.setJourneyIdx(cur + 1);
+  }
+};

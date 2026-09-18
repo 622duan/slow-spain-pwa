@@ -1,0 +1,33 @@
+{
+  "name": "漫游西班牙 · Slow Spain",
+  "short_name": "Slow Spain",
+  "description": "此刻该做什么 - 101 家真实店铺 · 实时定位 · Google Maps 联动",
+  "start_url": "./pages/now.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8F9FB",
+  "theme_color": "#E63946",
+  "lang": "zh-CN",
+  "categories": ["travel", "lifestyle", "food"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

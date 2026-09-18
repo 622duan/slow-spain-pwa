@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>此刻 · Now</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; background: #F8F9FB; }
+  .safe-top { padding-top: env(safe-area-inset-top, 12px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hero-grad { background: linear-gradient(180deg, rgba(230,57,70,0.0) 0%, rgba(0,0,0,0.55) 100%); }
+  .timechip-active { background: #1a1a1a; color: white; }
+  .timechip { transition: all 0.2s; }
+  .city-chip { transition: all 0.2s; }
+  .city-picker { transition: all 0.2s; }
+  .city-picker.open { background: rgba(255,255,255,0.95); color: #264653; }
+  .picker-menu {
+    position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+    background: white; border-radius: 16px; padding: 6px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    z-index: 50;
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 0.25s, opacity 0.2s, padding 0.2s;
+    pointer-events: none;
+  }
+  .picker-menu.open {
+    max-height: calc(100vh - 120px);
+    opacity: 1; padding: 6px; pointer-events: auto;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .picker-menu::-webkit-scrollbar { width: 4px; }
+  .picker-menu::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+  .picker-item { transition: background 0.15s; }
+  .picker-item:active { background: #f3f4f6; }
+  .card { transition: transform 0.15s; cursor: pointer; }
+  .card:active { transform: scale(0.98); }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2A9D8F; box-shadow: 0 0 0 0 rgba(42,157,143,0.7); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(42,157,143,0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(42,157,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(42,157,143,0); }
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <!-- Hero Header -->
+  <div id="hero" class="relative" style="background: linear-gradient(135deg, #E63946 0%, #C77D00 100%);">
+    <div id="hero-bg" class="absolute inset-0 opacity-30 transition-all duration-500" style="background-size: cover; background-position: center;"></div>
+    <div class="relative px-5 pt-4 pb-20 text-white">
+      <div class="relative mb-2 inline-block">
+        <button id="city-btn" class="city-picker flex items-center gap-2 bg-white/15 backdrop-blur rounded-full pl-3 pr-2 py-1.5 active:scale-95 transition-all">
+          <i class="fa-solid fa-location-dot text-sm"></i>
+          <span id="city-name" class="text-sm font-medium">巴塞罗那</span>
+          <span class="text-xs opacity-70" id="city-area">· 哥特区</span>
+          <i class="fa-solid fa-chevron-down text-xs opacity-70 ml-1 transition-transform" id="city-arrow"></i>
+        </button>
+        <div id="city-menu" class="picker-menu"></div>
+      </div>
+      <h1 id="greeting" class="text-3xl font-bold mb-1">下午好</h1>
+      <p class="text-sm opacity-90" id="greeting-sub">基于位置 + 时段推荐</p>
+      <div id="live-status" class="hidden mt-2 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur rounded-full px-3 py-1 text-xs">
+        <span class="live-dot"></span>
+        <span>实时定位已开启</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Time Slot Bar -->
+  <div class="px-5 -mt-12 relative z-10">
+    <div class="bg-white rounded-2xl shadow-lg shadow-black/10 p-1.5 flex gap-1 glass">
+      <button class="timechip flex-1 py-2 rounded-xl text-xs font-medium text-midnight/60" data-time="morning">
+        <i class="fa-solid fa-mug-hot block text-base mb-0.5"></i>上午
+      </button>
+      <button class="timechip flex-1 py-2 rounded-xl text-xs font-medium text-midnight/60" data-time="lunch">
+        <i class="fa-solid fa-utensils block text-base mb-0.5"></i>午餐
+      </button>
+      <button class="timechip flex-1 py-2 rounded-xl text-xs font-medium text-midnight/60" data-time="tea">
+        <i class="fa-solid fa-martini-glass-citrus block text-base mb-0.5"></i>下午茶
+      </button>
+      <button class="timechip flex-1 py-2 rounded-xl text-xs font-medium text-midnight/60" data-time="dinner">
+        <i class="fa-solid fa-wine-glass block text-base mb-0.5"></i>晚餐
+      </button>
+      <button class="timechip flex-1 py-2 rounded-xl text-xs font-medium text-midnight/60" data-time="night">
+        <i class="fa-solid fa-moon block text-base mb-0.5"></i>夜间
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero Recommendation -->
+  <div class="px-5 mt-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-bold" id="reco-title">此刻最推荐</h2>
+      <span class="text-xs text-midnight/50" id="reco-meta">基于位置 + 时段</span>
+    </div>
+
+    <!-- 行程进度 + 完成按钮 -->
+    <div id="advance-banner" class="bg-white rounded-2xl p-3 shadow-sm border border-olive/20 mb-3 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-olive/15 flex items-center justify-center flex-shrink-0">
+        <i class="fa-solid fa-location-dot text-olive"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-midnight/60">你在这里</div>
+        <div class="font-semibold text-sm" id="advance-city">--</div>
+      </div>
+      <button id="advance-btn" class="bg-olive text-white px-3 py-2 rounded-xl text-xs font-semibold active:scale-95 transition-all whitespace-nowrap">
+        <i class="fa-solid fa-check mr-1"></i>完成 · 下一站
+      </button>
+    </div>
+
+    <div id="hero-card" class="card relative rounded-3xl overflow-hidden shadow-xl shadow-black/15" onclick="window.location='spot.html?id=' + (window.__currentSpotId||'')">
+      <img id="hero-img" class="w-full h-72 object-cover transition-all duration-500">
+      <div class="hero-grad absolute inset-0"></div>
+      <div class="absolute top-4 left-4 flex gap-2 flex-wrap">
+        <span id="hero-cat-badge" class="px-2.5 py-1 rounded-full glass bg-white/90 text-midnight text-[10px] font-semibold">
+          <i class="fa-solid fa-fire text-tomato mr-1"></i>此刻匹配
+        </span>
+        <span id="hero-dist-badge" class="px-2.5 py-1 rounded-full glass bg-white/90 text-midnight text-[10px] font-semibold">
+          <span id="hero-dist">--</span> · 步行 <span id="hero-walk">--</span>
+        </span>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+        <div class="flex items-center gap-1.5 mb-2">
+          <i class="fa-solid fa-star text-sand text-xs"></i>
+          <span class="text-xs font-semibold" id="hero-rating">--</span>
+          <span class="text-xs opacity-70">·</span>
+          <span class="text-xs opacity-90" id="hero-price">--</span>
+        </div>
+        <h3 id="hero-name" class="text-xl font-bold mb-0.5">--</h3>
+        <p id="hero-sub" class="text-xs opacity-80 mb-1">--</p>
+        <p id="hero-story" class="text-xs opacity-90 line-clamp-2">--</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary Recos -->
+  <div class="px-5 mt-7">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-bold" id="nearby-title">附近好店</h2>
+      <a href="explore.html" class="text-xs text-tomato font-medium">查看地图 →</a>
+    </div>
+
+    <div id="nearby-list" class="space-y-3"></div>
+  </div>
+
+  <!-- Quick tip -->
+  <div class="px-5 mt-7">
+    <div class="bg-gradient-to-br from-sand/15 to-tomato/10 rounded-2xl p-4 flex gap-3">
+      <div class="w-10 h-10 rounded-full bg-sand/20 flex items-center justify-center flex-shrink-0">
+        <i class="fa-solid fa-lightbulb text-sand"></i>
+      </div>
+      <div class="flex-1">
+        <h4 id="tip-title" class="font-semibold text-sm mb-1">提示</h4>
+        <p id="tip-body" class="text-xs text-midnight/70 leading-relaxed"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5 safe-bottom">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-tomato" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px] font-semibold">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 实时定位 ====================
+let userLat = null, userLng = null;
+
+function detectLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => resolve(null),
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  });
+}
+
+function spotCoord(s, city) {
+  if (s.lat && s.lng) return { lat: s.lat, lng: s.lng };
+  const hash = (s.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return {
+    lat: city.lat + ((hash % 100) / 100 - 0.5) * 0.02,
+    lng: city.lng + (((hash * 7) % 100) / 100 - 0.5) * 0.02
+  };
+}
+
+function calcDist(s, city) {
+  if (!userLat) return 0.5;
+  const c = spotCoord(s, city);
+  return window.SS.haversine(userLat, userLng, c.lat, c.lng);
+}
+
+// ==================== 时段 → 推荐类别 ====================
+const TIME_TO_CAT = {
+  morning: ['cafe', 'dessert'],          // 早上去咖啡/甜品
+  lunch: ['restaurant'],                  // 午餐去餐厅
+  tea: ['cafe', 'dessert', 'stroll'],    // 下午茶 咖啡甜品闲逛
+  dinner: ['restaurant'],                 // 晚餐去餐厅
+  night: ['restaurant', 'cafe']          // 夜间 餐厅/咖啡
+};
+
+const TIME_TIPS = {
+  morning: {
+    title: '上午时段小贴士',
+    body: '西班牙人的 Churros 时段是清晨 7-10 点,本地人早餐就吃这个,配一杯热巧克力。在马德里去 Chocolatería San Ginés,在巴塞罗那可以去 Granja Viader。'
+  },
+  lunch: {
+    title: '午餐时段小贴士',
+    body: '西班牙午餐时段是 13:30-15:30,本地餐厅在 17 点后才开门,游客通常饿着。点 Paella 时两人起点,海鲜饭口味偏咸可以点一句 "Poca sal"。'
+  },
+  tea: {
+    title: '下午茶时段小贴士',
+    body: 'Merienda 时段(17-19)是西班牙的下午茶。本地人下班后先去咖啡馆或糕点店,一杯咖啡配一份巴斯克蛋糕。Horchata 在瓦伦西亚是经典。'
+  },
+  dinner: {
+    title: '晚餐时段小贴士',
+    body: '晚餐高峰 21-23 点,本地人这时才出来。建议 20 点前到避开排队。必点蒜香大虾、小青椒炒一切(Pimientos de Padrón)、Sangría。'
+  },
+  night: {
+    title: '夜间时段小贴士',
+    body: '夜生活 23 点才刚开始。Tapas 配一杯 Vermut(苦艾酒)是经典搭配。哥特区和 Raval 区的 Tapas 老吧最热闹。'
+  }
+};
+
+// ==================== 状态 ====================
+const CITIES = window.SLOW_SPAIN.cities;
+// 当前城市由 SS.getCurrentCityId() 提供(用户可确认完成切换)
+let currentCityIdx = CITIES.findIndex(c => c.id === window.SS.getCurrentCityId());
+if (currentCityIdx === -1) currentCityIdx = CITIES.findIndex(c => c.id === 'barcelona');
+let currentTime = 'tea';
+window.__currentSpotId = '';
+
+function recommend(cityId, time) {
+  const city = CITIES.find(c => c.id === cityId);
+  const spots = window.SLOW_SPAIN.spots[cityId] || [];
+  const cats = TIME_TO_CAT[time] || ['restaurant'];
+
+  // 优先匹配时段类别 + 评分高 + 有 hot 标签
+  const candidates = spots.filter(s => cats.includes(s.cat));
+  // 按 hot + rating 排序
+  candidates.sort((a, b) => {
+    if (a.hot && !b.hot) return -1;
+    if (!a.hot && b.hot) return 1;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+
+  // 计算距离,优先近的
+  if (userLat) {
+    candidates.forEach(s => s._dist = calcDist(s, city));
+    candidates.sort((a, b) => {
+      if (a.hot && !b.hot) return -1;
+      if (!a.hot && b.hot) return 1;
+      return (a._dist || 0) - (b._dist || 0);
+    });
+  }
+
+  return {
+    city,
+    hero: candidates[0],
+    nearby: candidates.slice(1, 5)
+  };
+}
+
+function applyTime(time) {
+  currentTime = time;
+  document.querySelectorAll('.timechip').forEach(b => {
+    b.classList.toggle('timechip-active', b.dataset.time === time);
+  });
+
+  const r = recommend(CITIES[currentCityIdx].id, time);
+  const hero = r.hero;
+
+  document.getElementById('reco-title').textContent = `${timeTitle(time)}最推荐`;
+  document.getElementById('hero-img').src = hero.image;
+  document.getElementById('hero-name').textContent = hero.name;
+  document.getElementById('hero-sub').textContent = hero.name_es;
+  document.getElementById('hero-story').textContent = hero.story;
+  document.getElementById('hero-rating').textContent = hero.rating || '—';
+  document.getElementById('hero-price').textContent = hero.price;
+
+  const dist = userLat ? calcDist(hero, r.city) : 0.5;
+  document.getElementById('hero-dist').textContent = dist.toFixed(1) + 'km';
+  document.getElementById('hero-walk').textContent = Math.max(1, Math.round(dist * 12)) + 'min';
+
+  // 类别 badge
+  const catMeta = window.SLOW_SPAIN.categoryMeta[hero.cat];
+  document.getElementById('hero-cat-badge').innerHTML = `<i class="fa-solid ${catMeta.icon} mr-1" style="color:${catMeta.color}"></i>${catMeta.name}`;
+
+  window.__currentSpotId = hero.id;
+
+  // 附近列表
+  const nearbyList = document.getElementById('nearby-list');
+  nearbyList.innerHTML = r.nearby.map((s, idx) => {
+    const m = window.SLOW_SPAIN.categoryMeta[s.cat];
+    const d = userLat ? calcDist(s, r.city).toFixed(1) + 'km' : s.distance;
+    const isBM = localStorage.getItem('bm_' + s.id) === '1';
+    return `
+    <div class="card bg-white rounded-2xl p-3 flex gap-3 shadow-sm" onclick="window.location='spot.html?id=${s.id}'">
+      <img src="${s.image}" class="w-20 h-20 rounded-xl object-cover">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <h3 class="font-semibold text-sm truncate">${s.name}</h3>
+          <button class="bookmark-btn" onclick="event.stopPropagation(); toggleBookmark(this, '${s.id}')" data-on="${isBM ? '1' : '0'}">
+            <i class="${isBM ? 'fa-solid text-tomato' : 'fa-regular text-midnight/40'} fa-bookmark text-sm"></i>
+          </button>
+        </div>
+        <p class="text-xs text-midnight/60 mb-1.5 line-clamp-1">${(s.tags || []).slice(0,2).join(' · ')}</p>
+        <div class="flex items-center gap-2 text-[10px] text-midnight/50">
+          <span><i class="fa-solid fa-location-dot mr-0.5"></i>${d}</span>
+          <span style="color:${m.color}"><i class="fa-solid ${m.icon} mr-0.5"></i>${m.name}</span>
+          ${s.hot ? '<span class="text-tomato font-semibold"><i class="fa-solid fa-fire mr-0.5"></i>编辑推荐</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Tip
+  const tip = TIME_TIPS[time];
+  document.getElementById('tip-title').textContent = tip.title;
+  document.getElementById('tip-body').textContent = tip.body;
+
+  // 城市背景
+  switchCityBg(r.city);
+}
+
+function timeTitle(t) {
+  return { morning: '上午', lunch: '午餐', tea: '下午茶', dinner: '晚餐', night: '夜间' }[t];
+}
+
+document.querySelectorAll('.timechip').forEach(b => {
+  b.addEventListener('click', () => applyTime(b.dataset.time));
+});
+
+// ==================== 城市选择 ====================
+function switchCityBg(city) {
+  document.getElementById('hero-bg').style.backgroundImage = `url('${city.cover}')`;
+  document.getElementById('city-name').textContent = city.name;
+  document.getElementById('city-area').textContent = '· ' + city.subtitle.split(' · ')[0];
+}
+
+// 渲染城市选择菜单
+function renderCityMenu() {
+  const menu = document.getElementById('city-menu');
+  menu.innerHTML = CITIES.map((c, idx) => {
+    const isCurrent = idx === currentCityIdx;
+    const isDone = !['barcelona'].includes(c.id) && idx < currentCityIdx;
+    return `
+    <button class="picker-item w-full flex items-center gap-3 p-2 rounded-xl text-left ${isCurrent ? 'bg-tomato/10' : ''}" data-idx="${idx}">
+      <div class="w-8 h-8 rounded-lg bg-cover bg-center flex-shrink-0" style="background-image: url('${c.cover}')"></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5">
+          <span class="font-semibold text-sm ${isCurrent ? 'text-tomato' : ''}">${c.name}</span>
+          ${isCurrent ? '<span class="px-1.5 py-0.5 rounded bg-tomato text-white text-[9px] font-semibold flex-shrink-0">当前</span>' : ''}
+        </div>
+        <p class="text-[10px] text-midnight/60 truncate">${c.days}</p>
+      </div>
+      ${isDone ? '<i class="fa-solid fa-check-circle text-olive text-sm flex-shrink-0"></i>' : '<i class="fa-solid fa-chevron-right text-midnight/20 text-xs flex-shrink-0"></i>'}
+    </button>`;
+  }).join('');
+  menu.querySelectorAll('.picker-item').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentCityIdx = parseInt(b.dataset.idx);
+      closeCityMenu();
+      // 同步更新 journey idx(影响 journey 页面)
+      window.SS.setJourneyIdx(currentCityIdx);
+      const city = CITIES[currentCityIdx];
+      document.getElementById('city-name').textContent = city.name;
+      applyTime(currentTime);
+      updateAdvanceBanner();
+    });
+  });
+}
+
+function openCityMenu() {
+  document.getElementById('city-menu').classList.add('open');
+  document.getElementById('city-btn').classList.add('open');
+  document.getElementById('city-arrow').style.transform = 'rotate(180deg)';
+}
+
+function closeCityMenu() {
+  document.getElementById('city-menu').classList.remove('open');
+  document.getElementById('city-btn').classList.remove('open');
+  document.getElementById('city-arrow').style.transform = '';
+}
+
+document.getElementById('city-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = document.getElementById('city-menu');
+  if (menu.classList.contains('open')) closeCityMenu();
+  else openCityMenu();
+});
+
+// 点外部关闭
+document.addEventListener('click', () => closeCityMenu());
+
+// ==================== 收藏 ====================
+function toggleBookmark(btn, spotId) {
+  const icon = btn.querySelector('i');
+  const isOn = btn.dataset.on === '1';
+  if (isOn) {
+    btn.dataset.on = '0';
+    icon.classList.remove('fa-solid', 'text-tomato');
+    icon.classList.add('fa-regular', 'text-midnight/40');
+    localStorage.setItem('bm_' + spotId, '0');
+  } else {
+    btn.dataset.on = '1';
+    icon.classList.remove('fa-regular', 'text-midnight/40');
+    icon.classList.add('fa-solid', 'text-tomato');
+    btn.style.transform = 'scale(1.3)';
+    setTimeout(() => btn.style.transform = '', 150);
+    localStorage.setItem('bm_' + spotId, '1');
+  }
+}
+
+// ==================== 时钟 ====================
+// ==================== 问候语 ====================
+function updateGreeting() {
+  const h = new Date().getHours();
+  let g = '下午好';
+  if (h < 11) g = '早上好';
+  else if (h < 14) g = '中午好';
+  else if (h < 18) g = '下午好';
+  else g = '晚上好';
+  document.getElementById('greeting').textContent = g;
+}
+updateGreeting();
+
+// ==================== TabBar ====================
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+
+// ==================== 初始化 ====================
+(async function init() {
+  // 默认根据当前时间选择时段
+  const hour = new Date().getHours();
+  if (hour >= 7 && hour < 11) currentTime = 'morning';
+  else if (hour >= 11 && hour < 15) currentTime = 'lunch';
+  else if (hour >= 15 && hour < 18) currentTime = 'tea';
+  else if (hour >= 18 && hour < 22) currentTime = 'dinner';
+  else currentTime = 'night';
+
+  // 异步获取定位
+  const loc = await detectLocation();
+  if (loc) {
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('live-status').classList.remove('hidden');
+  }
+
+  applyTime(currentTime);
+  renderCityMenu();
+  updateAdvanceBanner();
+
+  // 完成 → 下一站按钮
+  document.getElementById('advance-btn').onclick = () => {
+    const curIdx = window.SS.getJourneyIdx();
+    if (curIdx >= 5) {
+      alert('🎉 旅途已经走完全部 6 站!\n\n你现在在返程马德里。');
+      return;
+    }
+    const nextIdx = curIdx + 1;
+    const curCity = CITIES.find(c => c.id === window.SS.journeyOrder[curIdx]);
+    const nextCity = CITIES.find(c => c.id === window.SS.journeyOrder[nextIdx]);
+    const msg = `✓ 完成「${curCity.name}」\n\n前往下一站:「${nextCity.name}」?\n\n确认后会更新此刻、行程、心愿的推荐城市。`;
+    if (!confirm(msg)) return;
+    window.SS.advanceJourney();
+    // 重新读 idx,更新本地 currentCityIdx
+    const newIdx = CITIES.findIndex(c => c.id === window.SS.getCurrentCityId());
+    currentCityIdx = newIdx;
+    applyTime(currentTime);
+    renderCityMenu();
+    updateAdvanceBanner();
+    document.getElementById('city-name').textContent = nextCity.name;
+  };
+})();
+
+function updateAdvanceBanner() {
+  const idx = window.SS.getJourneyIdx();
+  const city = CITIES.find(c => c.id === window.SS.getCurrentCityId());
+  const days = window.SS.getCurrentDays();
+  document.getElementById('advance-city').textContent = `${city.name} · ${days}`;
+  // 进度
+  const pct = Math.min(100, Math.round(((idx + 1) / 6) * 100));
+  // 更新进度条(hero-title 旁边)
+  if (idx >= 5) {
+    document.getElementById('advance-btn').innerHTML = '<i class="fa-solid fa-trophy mr-1"></i>旅程完成';
+    document.getElementById('advance-btn').classList.remove('bg-olive');
+    document.getElementById('advance-btn').classList.add('bg-sand');
+  }
+}
+</script>
+</body>
+</html>

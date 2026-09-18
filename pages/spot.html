@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>店铺详情</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hero-grad { background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.7) 100%); }
+  .map-bg { background-color: #e8e3d8; background-image: linear-gradient(rgba(168,162,142,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(168,162,142,0.3) 1px, transparent 1px); background-size: 30px 30px; }
+  .btn-press { transition: transform 0.1s; }
+  .btn-press:active { transform: scale(0.95); }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2A9D8F; box-shadow: 0 0 0 0 rgba(42,157,143,0.7); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(42,157,143,0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(42,157,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(42,157,143,0); }
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <div class="relative">
+    <img id="hero-img" class="w-full h-80 object-cover">
+    <div class="hero-grad absolute inset-0"></div>
+    <div class="absolute top-12 left-0 right-0 px-4 flex items-center justify-between">
+      <a id="back-btn" href="city.html" class="w-10 h-10 rounded-full glass bg-white/30 flex items-center justify-center text-white active:scale-95 transition-all">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="flex gap-2">
+        <button id="share-btn" class="w-10 h-10 rounded-full glass bg-white/30 flex items-center justify-center text-white active:scale-95 transition-all">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+        <button id="visited-btn" class="w-10 h-10 rounded-full glass bg-white/30 flex items-center justify-center text-white active:scale-95 transition-all" data-on="0" title="打卡">
+          <i class="fa-regular fa-circle-check"></i>
+        </button>
+        <button id="bookmark-btn" class="w-10 h-10 rounded-full glass bg-white/30 flex items-center justify-center text-white active:scale-95 transition-all" data-on="0">
+          <i class="fa-regular fa-bookmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="type-badge" class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur text-[10px] font-semibold"></span>
+        <span id="status-badge" class="px-2.5 py-1 rounded-full bg-olive text-[10px] font-semibold">
+          <i class="fa-solid fa-check mr-1"></i>营业中
+        </span>
+        <span id="live-badge" class="px-2.5 py-1 rounded-full bg-olive/80 text-[10px] font-semibold hidden">
+          <span class="live-dot inline-block mr-1"></span>实时定位
+        </span>
+      </div>
+      <h1 id="spot-name" class="text-3xl font-bold mb-0.5"></h1>
+      <p id="spot-sub" class="text-sm opacity-90 italic"></p>
+    </div>
+  </div>
+
+  <!-- Quick stats -->
+  <div class="px-5 mt-5">
+    <div class="bg-white rounded-2xl shadow-sm p-4 grid grid-cols-4 gap-2 text-center">
+      <div>
+        <div id="stat-rating" class="text-lg font-bold">4.5</div>
+        <div class="text-[10px] text-midnight/60">⭐ 评分</div>
+      </div>
+      <div class="border-l border-gray-100">
+        <div id="stat-price" class="text-lg font-bold">€</div>
+        <div class="text-[10px] text-midnight/60">人均</div>
+      </div>
+      <div class="border-l border-gray-100">
+        <div id="stat-dist" class="text-lg font-bold">--</div>
+        <div class="text-[10px] text-midnight/60">km 距离</div>
+      </div>
+      <div class="border-l border-gray-100">
+        <div id="stat-walk" class="text-lg font-bold">--</div>
+        <div class="text-[10px] text-midnight/60">min 步行</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Story -->
+  <div class="px-5 mt-5">
+    <h3 class="font-bold text-base mb-2">关于这里</h3>
+    <p id="story-text" class="text-sm text-midnight/80 leading-relaxed"></p>
+  </div>
+
+  <!-- Tags -->
+  <div class="px-5 mt-4">
+    <div id="tags-row" class="flex flex-wrap gap-2"></div>
+  </div>
+
+  <!-- 我的拍照 -->
+  <div id="my-photos-section" class="px-5 mt-6">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="font-bold text-base flex items-center gap-1.5">
+        <i class="fa-solid fa-camera-retro text-tomato"></i>我的照片
+        <span class="text-[10px] text-midnight/40 font-normal">(<span id="my-photo-count">0</span>)</span>
+      </h3>
+      <div class="flex gap-2">
+        <button id="btn-set-cover" class="bg-olive text-white rounded-full px-3 py-1.5 text-xs font-semibold active:scale-95 transition-all">
+          <i class="fa-solid fa-image mr-1"></i>设为封面
+        </button>
+        <label class="bg-tomato text-white rounded-full px-3 py-1.5 text-xs font-semibold active:scale-95 transition-all cursor-pointer">
+          <i class="fa-solid fa-plus mr-1"></i>拍照
+          <input type="file" id="my-photo-input" accept="image/*" capture="environment" class="hidden">
+        </label>
+      </div>
+    </div>
+    <div id="my-photos-grid" class="grid grid-cols-3 gap-2"></div>
+    <p id="my-photos-empty" class="text-center text-xs text-midnight/40 py-4 bg-white rounded-2xl border border-dashed border-midnight/15">
+      拍一张照片,留作回忆
+    </p>
+  </div>
+
+  <!-- Hours -->
+  <div class="px-5 mt-6">
+    <h3 class="font-bold text-base mb-3">营业时间</h3>
+    <div class="bg-white rounded-2xl p-4 shadow-sm">
+      <p id="hours-line" class="text-sm font-medium mb-2"></p>
+      <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs" id="open-row">
+        <i class="fa-solid fa-check-circle text-olive"></i>
+        <span class="font-semibold text-olive" id="open-status">营业中</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 真实评价 -->
+  <div id="reviews-section" class="px-5 mt-6 hidden">
+    <h3 class="font-bold text-base mb-3">真实评价</h3>
+    <div id="reviews-list" class="space-y-2"></div>
+  </div>
+
+  <!-- Menu / Highlights -->
+  <div id="menu-section" class="px-5 mt-6">
+    <h3 class="font-bold text-base mb-3" id="menu-title">招牌推荐</h3>
+    <div id="menu-list" class="space-y-2"></div>
+  </div>
+
+  <!-- Map + Address -->
+  <div class="px-5 mt-6">
+    <h3 class="font-bold text-base mb-3">位置</h3>
+    <div class="bg-white rounded-2xl overflow-hidden shadow-sm">
+      <a id="map-link" href="#" target="_blank" class="block h-32 relative map-bg active:opacity-80 transition-opacity">
+        <div class="absolute top-1/3 left-1/2 w-4 h-4 bg-tomato rounded-full border-2 border-white shadow"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="bg-white/95 px-3 py-1.5 rounded-full text-[10px] font-semibold shadow">
+            <i class="fa-solid fa-map-location-dot text-tomato mr-1"></i>点击打开 Google Maps
+          </div>
+        </div>
+      </a>
+      <div class="p-3 flex items-center justify-between">
+        <div class="flex-1 min-w-0 pr-2">
+          <p class="text-xs text-midnight/60" id="addr-line1"></p>
+          <p class="text-xs text-midnight font-medium" id="addr-line2"></p>
+        </div>
+        <button id="copy-btn" class="text-tomato text-xs font-semibold active:scale-95 transition-all whitespace-nowrap">
+          复制地址 <i class="fa-solid fa-copy ml-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 攻略 -->
+  <div id="tip-section" class="px-5 mt-6"></div>
+</div>
+
+<!-- Bottom CTA -->
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/90 border-t border-black/5">
+  <div class="flex gap-2 p-3 pb-5">
+    <button id="gmaps-search-btn" class="btn-press flex-1 py-3 bg-midnight/5 text-midnight rounded-2xl text-sm font-semibold flex items-center justify-center gap-2">
+      <i class="fa-brands fa-google text-tomato"></i>
+      <span>Google Maps</span>
+    </button>
+    <button id="nav-btn" class="btn-press flex-1 py-3 bg-tomato text-white rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-tomato/30">
+      <i class="fa-solid fa-location-arrow"></i>
+      <span>步行导航</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 加载店铺数据 ====================
+const params = new URLSearchParams(location.search);
+const spotId = params.get('id');
+
+let allSpots = [];
+Object.values(window.SLOW_SPAIN.spots).forEach(arr => allSpots = allSpots.concat(arr));
+const spot = allSpots.find(s => s.id === spotId) || allSpots[0];
+
+if (!spot) {
+  document.body.innerHTML = '<div class="p-8 text-center">未找到店铺</div>';
+}
+
+// 找到对应城市
+let cityId = '';
+Object.entries(window.SLOW_SPAIN.spots).forEach(([k, v]) => {
+  if (v.find(s => s.id === spot.id)) cityId = k;
+});
+
+// ==================== 4 分类 ====================
+const CAT_META = window.SLOW_SPAIN.categoryMeta;
+const meta = CAT_META[spot.cat] || { name: '地点', icon: 'fa-location-dot', color: '#264653' };
+
+// ==================== 渲染 ====================
+document.getElementById('hero-img').src = spot.image;
+document.getElementById('type-badge').innerHTML = `<i class="fa-solid ${meta.icon} mr-1"></i>${meta.name} · ${spot.cat}`;
+document.getElementById('spot-name').textContent = spot.name;
+document.getElementById('spot-sub').textContent = spot.name_es;
+document.getElementById('stat-rating').textContent = spot.rating || '—';
+document.getElementById('stat-price').textContent = spot.price || '€';
+document.getElementById('story-text').textContent = spot.story || '';
+document.getElementById('back-btn').href = 'city.html?id=' + cityId;
+document.getElementById('hours-line').textContent = spot.hours;
+document.getElementById('addr-line1').textContent = spot.address || spot.google_query;
+document.getElementById('addr-line2').textContent = spot.name_es;
+
+// Tags
+document.getElementById('tags-row').innerHTML =
+  (spot.tags || []).map(t => `<span class="px-3 py-1.5 rounded-full bg-tomato/10 text-tomato text-xs font-medium">${t}</span>`).join('');
+
+// Menu / 招牌
+const menuList = document.getElementById('menu-list');
+const menuTitle = document.getElementById('menu-title');
+if (spot.menu && spot.menu.length > 0) {
+  menuTitle.textContent = spot.cat === 'stroll' ? '看点' : '招牌推荐';
+  menuList.innerHTML = spot.menu.map((m, i) => {
+    const emojis = ['🥇', '🌟', '✨'];
+    return `
+    <div class="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl ${meta.bg} flex items-center justify-center text-2xl">${emojis[i] || '★'}</div>
+      <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-sm truncate">${m}</h4>
+      </div>
+    </div>`;
+  }).join('');
+} else if (spot.cat === 'stroll') {
+  menuList.innerHTML = `
+    <div class="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl ${meta.bg} flex items-center justify-center text-2xl">🗺️</div>
+      <div class="flex-1">
+        <h4 class="font-semibold text-sm">地址</h4>
+        <p class="text-xs text-midnight/60">${spot.address || '—'}</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-sand/15 flex items-center justify-center text-2xl">⏰</div>
+      <div class="flex-1">
+        <h4 class="font-semibold text-sm">开放时间</h4>
+        <p class="text-xs text-midnight/60">${spot.hours}</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-olive/10 flex items-center justify-center text-2xl">💶</div>
+      <div class="flex-1">
+        <h4 class="font-semibold text-sm">门票</h4>
+        <p class="text-xs text-midnight/60">${spot.price}</p>
+      </div>
+    </div>`;
+} else {
+  document.getElementById('menu-section').style.display = 'none';
+}
+
+// 营业状态(简化:假设 9-22 营业)
+const hour = new Date().getHours();
+const open = hour >= 9 && hour < 22;
+document.getElementById('open-status').textContent = open ? '现在正在营业' : '现在打烊';
+if (!open) {
+  document.getElementById('open-row').className = 'mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs';
+  document.getElementById('open-row').querySelector('i').className = 'fa-solid fa-moon text-midnight/50';
+  document.getElementById('open-status').classList.remove('text-olive');
+  document.getElementById('open-status').classList.add('text-midnight/50');
+  document.getElementById('status-badge').className = 'px-2.5 py-1 rounded-full bg-midnight/60 text-[10px] font-semibold';
+  document.getElementById('status-badge').innerHTML = '<i class="fa-solid fa-moon mr-1"></i>已打烊';
+}
+
+
+// ==================== 实时定位 ====================
+let userLat = null, userLng = null;
+
+function detectLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => {
+        console.warn('定位失败:', err.message);
+        // 用城市默认坐标兜底
+        const city = window.SLOW_SPAIN.cities.find(c => c.id === cityId);
+        resolve(city ? { lat: city.lat, lng: city.lng } : null);
+      },
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  });
+}
+
+async function updateDistance() {
+  const loc = await detectLocation();
+  if (!loc) return;
+  userLat = loc.lat; userLng = loc.lng;
+
+  // 用城市中心 + 微偏移估算 spot 坐标(原型简化:用城市中心 + 随机方向)
+  const city = window.SLOW_SPAIN.cities.find(c => c.id === cityId);
+  if (!city) return;
+
+  // 用 city.lat/lng 作为基准,每个 spot 加微小随机偏移(简化)
+  const hash = (spot.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const dLat = ((hash % 100) / 100 - 0.5) * 0.01;
+  const dLng = (((hash * 7) % 100) / 100 - 0.5) * 0.01;
+  const spotLat = city.lat + dLat;
+  const spotLng = city.lng + dLng;
+
+  const dist = window.SS.haversine(loc.lat, loc.lng, spotLat, spotLng);
+  const walkMin = Math.max(1, Math.round(dist * 12)); // 1km ≈ 12min 步行
+
+  document.getElementById('stat-dist').textContent = dist.toFixed(1);
+  document.getElementById('stat-walk').textContent = walkMin;
+
+  // 显示实时定位 badge
+  document.getElementById('live-badge').classList.remove('hidden');
+}
+
+updateDistance();
+
+// ==================== Google Maps 联动 ====================
+function buildGoogleMapsSearch() {
+  return window.SS.googleMapsUrl(spot);
+}
+
+function buildGoogleMapsDirections() {
+  if (!userLat || !userLng) {
+    // 没有定位时,直接搜索
+    return window.SS.googleMapsUrl(spot);
+  }
+  // Google Maps Directions URL
+  // 用搜索形式,Google 会从用户当前位置导航
+  if (spot.google_query) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(spot.google_query)}&travelmode=walking`;
+  }
+  return `https://www.google.com/maps/dir/?api=1&destination=${userLat},${userLng}&travelmode=walking`;
+}
+
+// 地图预览点击
+document.getElementById('map-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  window.open(buildGoogleMapsSearch(), '_blank');
+});
+
+// Google Maps 搜索按钮
+document.getElementById('gmaps-search-btn').addEventListener('click', () => {
+  window.open(buildGoogleMapsSearch(), '_blank');
+});
+
+// 步行导航按钮
+document.getElementById('nav-btn').addEventListener('click', async () => {
+  // 重新获取一次最新定位
+  const loc = await detectLocation();
+  if (loc) { userLat = loc.lat; userLng = loc.lng; }
+  window.open(buildGoogleMapsDirections(), '_blank');
+});
+
+// ==================== 其他交互 ====================
+// 收藏
+const bookmarkBtn = document.getElementById('bookmark-btn');
+const isOn = localStorage.getItem('bm_' + spot.id) === '1';
+if (isOn) {
+  bookmarkBtn.dataset.on = '1';
+  bookmarkBtn.querySelector('i').classList.remove('fa-regular');
+  bookmarkBtn.querySelector('i').classList.add('fa-solid', 'text-tomato');
+}
+bookmarkBtn.addEventListener('click', () => {
+  const icon = bookmarkBtn.querySelector('i');
+  const on = bookmarkBtn.dataset.on === '1';
+  if (on) {
+    bookmarkBtn.dataset.on = '0';
+    icon.classList.remove('fa-solid', 'text-tomato');
+    icon.classList.add('fa-regular');
+    icon.style.color = 'white';
+    localStorage.setItem('bm_' + spot.id, '0');
+  } else {
+    bookmarkBtn.dataset.on = '1';
+    icon.classList.remove('fa-regular');
+    icon.classList.add('fa-solid', 'text-tomato');
+    bookmarkBtn.style.transform = 'scale(1.2)';
+    setTimeout(() => bookmarkBtn.style.transform = '', 200);
+    localStorage.setItem('bm_' + spot.id, '1');
+  }
+});
+
+// 打卡
+const visitedBtn = document.getElementById('visited-btn');
+const visitedOn = localStorage.getItem('visited_' + spot.id) === '1';
+if (visitedOn) {
+  visitedBtn.dataset.on = '1';
+  visitedBtn.querySelector('i').classList.remove('fa-regular', 'fa-circle-check');
+  visitedBtn.querySelector('i').classList.add('fa-solid', 'fa-circle-check', 'text-olive');
+  visitedBtn.style.background = 'rgba(42,157,143,0.6)';
+}
+visitedBtn.addEventListener('click', () => {
+  const icon = visitedBtn.querySelector('i');
+  const on = visitedBtn.dataset.on === '1';
+  if (on) {
+    visitedBtn.dataset.on = '0';
+    icon.classList.remove('fa-solid', 'text-olive');
+    icon.classList.add('fa-regular', 'fa-circle-check');
+    visitedBtn.style.background = '';
+    localStorage.setItem('visited_' + spot.id, '0');
+  } else {
+    visitedBtn.dataset.on = '1';
+    icon.classList.remove('fa-regular');
+    icon.classList.add('fa-solid', 'fa-circle-check', 'text-olive');
+    visitedBtn.style.background = 'rgba(42,157,143,0.6)';
+    visitedBtn.style.transform = 'scale(1.2)';
+    setTimeout(() => visitedBtn.style.transform = '', 200);
+    localStorage.setItem('visited_' + spot.id, '1');
+  }
+});
+
+// 真实评价
+function renderReviews() {
+  const reviews = (window.SLOW_SPAIN.reviews || {})[spot.id] || [];
+  if (reviews.length === 0) return;
+  const section = document.getElementById('reviews-section');
+  const list = document.getElementById('reviews-list');
+  section.classList.remove('hidden');
+  list.innerHTML = reviews.map(r => {
+    const isEs = r.lang === 'es';
+    const isEn = r.lang === 'en';
+    return `
+    <div class="bg-white rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full ${isEs ? 'bg-tomato' : isEn ? 'bg-olive' : 'bg-sand'}/15 flex items-center justify-center text-xs font-bold ${isEs ? 'text-tomato' : isEn ? 'text-olive' : 'text-wine'}">
+            ${r.src.charAt(0)}
+          </div>
+          <div>
+            <div class="text-xs font-semibold">${r.src}</div>
+            <div class="flex items-center gap-0.5">
+              ${[1,2,3,4,5].map(i => `<i class="fa-solid fa-star text-[9px] ${i <= Math.round(r.rating) ? 'text-sand' : 'text-midnight/15'}"></i>`).join('')}
+              <span class="text-[10px] text-midnight/50 ml-1">${r.rating}</span>
+            </div>
+          </div>
+        </div>
+        <span class="text-[10px] text-midnight/40">${isEs ? 'Español' : isEn ? 'English' : '中文'}</span>
+      </div>
+      <p class="text-sm text-midnight/80 leading-relaxed">"${r.text}"</p>
+    </div>`;
+  }).join('');
+}
+renderReviews();
+
+// 分享
+document.getElementById('share-btn').addEventListener('click', async () => {
+  const text = `${spot.name} (${spot.name_es})\n📍 ${spot.address || spot.google_query}\n— 来自 Slow Spain`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: spot.name, text, url: window.location.href });
+    } catch (e) { /* user cancelled */ }
+  } else if (navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    alert('已复制到剪贴板');
+  } else {
+    alert(text);
+  }
+});
+
+// 复制地址
+document.getElementById('copy-btn').addEventListener('click', async () => {
+  const addr = (spot.address || spot.google_query) + ', ' + spot.name_es;
+  const btn = document.getElementById('copy-btn');
+  try {
+    if (navigator.clipboard) await navigator.clipboard.writeText(addr);
+    btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>已复制';
+    setTimeout(() => btn.innerHTML = '复制地址 <i class="fa-solid fa-copy ml-1"></i>', 1500);
+  } catch (e) {
+    alert('复制失败: ' + e.message);
+  }
+});
+
+// ==================== 我的照片 ====================
+const MY_PHOTOS_KEY = 'spot_photos_v1';
+function getMyPhotos() {
+  const all = JSON.parse(localStorage.getItem(MY_PHOTOS_KEY) || '{}');
+  return all[spot.id] || [];
+}
+function saveMyPhotos(arr) {
+  const all = JSON.parse(localStorage.getItem(MY_PHOTOS_KEY) || '{}');
+  all[spot.id] = arr;
+  localStorage.setItem(MY_PHOTOS_KEY, JSON.stringify(all));
+}
+function renderMyPhotos() {
+  const arr = getMyPhotos();
+  const grid = document.getElementById('my-photos-grid');
+  const empty = document.getElementById('my-photos-empty');
+  document.getElementById('my-photo-count').textContent = arr.length;
+  if (arr.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  grid.innerHTML = arr.map((p, idx) => `
+    <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
+      <img src="${p}" class="w-full h-full object-cover" data-idx="${idx}">
+      <button class="my-photo-del absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center active:scale-90 transition-all" data-idx="${idx}">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    </div>
+  `).join('');
+  // 点开大图查看
+  grid.querySelectorAll('img').forEach(img => {
+    img.onclick = () => {
+      const i = parseInt(img.dataset.idx);
+      const arr = getMyPhotos();
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 z-[100] bg-black flex items-center justify-center';
+      overlay.innerHTML = `<img src="${arr[i]}" class="max-w-full max-h-full"><button class="absolute top-5 right-5 w-10 h-10 rounded-full glass bg-white/30 text-white text-xl flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>`;
+      overlay.onclick = () => overlay.remove();
+      document.body.appendChild(overlay);
+    };
+  });
+  grid.querySelectorAll('.my-photo-del').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (!confirm('删除这张照片?')) return;
+      const arr = getMyPhotos();
+      arr.splice(parseInt(btn.dataset.idx), 1);
+      saveMyPhotos(arr);
+      renderMyPhotos();
+    };
+  });
+}
+renderMyPhotos();
+document.getElementById('my-photo-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      const ratio = Math.min(1, maxW / img.width);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const arr = getMyPhotos();
+      arr.push(dataUrl);
+      saveMyPhotos(arr);
+      renderMyPhotos();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// ==================== 自定义封面 ====================
+// 用本地拍的图替换原 spot.image(尤其是 placeholder 店)
+const COVER_KEY = (id) => `custom_cover_${id}`;
+function getCustomCover() { return localStorage.getItem(COVER_KEY(spot.id)); }
+function setCustomCover(dataUrl) { localStorage.setItem(COVER_KEY(spot.id), dataUrl); }
+function clearCustomCover() { localStorage.removeItem(COVER_KEY(spot.id)); }
+function applyCustomCover() {
+  const custom = getCustomCover();
+  if (custom) {
+    document.getElementById('hero-img').src = custom;
+    return true;
+  }
+  return false;
+}
+applyCustomCover();
+
+// "设为封面"按钮:从相册里选一张
+document.getElementById('btn-set-cover').addEventListener('click', () => {
+  const photos = getMyPhotos();
+  if (photos.length === 0) {
+    alert('还没有照片,先去拍一张!');
+    return;
+  }
+  // 弹窗让用户选
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4';
+  const hasCustom = !!getCustomCover();
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl p-5 w-full max-w-md max-h-[80vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-base">选一张设为封面</h3>
+        <button id="cover-close" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+      <p class="text-xs text-midnight/60 mb-3">点击照片即设为这家店的主图(替换占位符/原图)</p>
+      <div class="grid grid-cols-3 gap-2" id="cover-picker-grid">
+        ${photos.map((p, idx) => `
+          <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer ring-2 ring-transparent hover:ring-tomato transition-all" data-idx="${idx}">
+            <img src="${p}" class="w-full h-full object-cover">
+            ${idx === photoIndex ? '<div class="absolute top-1 right-1 bg-tomato text-white text-[9px] px-1.5 py-0.5 rounded-full">当前</div>' : ''}
+          </div>
+        `).join('')}
+      </div>
+      ${hasCustom ? `
+        <button id="cover-clear" class="mt-4 w-full py-2.5 bg-gray-100 text-midnight rounded-full text-sm font-semibold active:scale-95 transition-all">
+          <i class="fa-solid fa-rotate-left mr-1"></i>恢复原图
+        </button>
+      ` : ''}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  let photoIndex = -1;
+  // 找到当前封面在相册里的索引
+  const custom = getCustomCover();
+  if (custom) photoIndex = photos.indexOf(custom);
+
+  overlay.querySelector('#cover-close').onclick = () => overlay.remove();
+  if (hasCustom) {
+    overlay.querySelector('#cover-clear').onclick = () => {
+      clearCustomCover();
+      document.getElementById('hero-img').src = spot.image;
+      overlay.remove();
+      alert('✓ 已恢复原图');
+    };
+  }
+  overlay.querySelectorAll('#cover-picker-grid > div').forEach(el => {
+    el.onclick = () => {
+      const i = parseInt(el.dataset.idx);
+      setCustomCover(photos[i]);
+      document.getElementById('hero-img').src = photos[i];
+      overlay.remove();
+      alert('✓ 已设为封面');
+    };
+  });
+});
+</script>
+</body>
+</html>

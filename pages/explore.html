@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>探索 · Explore</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  html, body { height: 100%; margin: 0; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* 地图底图用 SVG 背景图 */
+  .map-bg {
+    background: linear-gradient(135deg, #e8e3d8 0%, #d8d3c8 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .map-bg::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(168,162,142,0.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,162,142,0.25) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .park-shape { position: absolute; background: #b9d6a8; border-radius: 50% 30% 60% 40%; opacity: 0.7; }
+  .street-shape { position: absolute; background: rgba(255,255,255,0.85); }
+  /* markers 容器用 grid 布局,避免 absolute 定位的冲突 */
+  .markers-grid {
+    position: absolute;
+    top: 50%; left: 0; right: 0; bottom: 0;
+    padding: 12% 6% 38% 6%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    align-items: center;
+    justify-items: center;
+  }
+  .marker-pin {
+    width: 44px; height: 44px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+    cursor: pointer;
+    border: 2px solid white;
+  }
+  .marker-pin:active { transform: rotate(-45deg) scale(1.15); }
+  .marker-pin i { transform: rotate(45deg); color: white; font-size: 16px; }
+  .m-restaurant { background: #E63946; }
+  .m-dessert { background: #F4A261; }
+  .m-cafe { background: #6F1D1B; }
+  .m-stroll { background: #2A9D8F; }
+  .filter-chip-active { background: #1a1a1a !important; color: white !important; }
+  .tab-btn { transition: color 0.2s; }
+  .item-row { transition: background 0.15s; cursor: pointer; }
+  .item-row:active { background: #f3f4f6; }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2A9D8F; box-shadow: 0 0 0 0 rgba(42,157,143,0.7); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(42,157,143,0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(42,157,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(42,157,143,0); }
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="relative w-full h-full overflow-hidden bg-[#e8e3d8]">
+  <!-- 地图背景 -->
+  <div class="absolute inset-0 map-bg">
+    <!-- 公园 -->
+    <div class="park-shape" style="top: 22%; left: 8%; width: 70px; height: 70px;"></div>
+    <div class="park-shape" style="top: 60%; right: 12%; width: 60px; height: 60px;"></div>
+    <!-- 街道 -->
+    <div class="street-shape" style="top: 0; bottom: 0; left: 35%; width: 4px;"></div>
+    <div class="street-shape" style="top: 0; bottom: 0; right: 25%; width: 4px;"></div>
+    <div class="street-shape" style="top: 45%; left: 0; right: 0; height: 4px;"></div>
+    <div class="street-shape" style="top: 70%; left: 0; right: 0; height: 4px;"></div>
+    <!-- 街区 -->
+    <div class="absolute top-[28%] left-[8%] w-20 h-14 bg-[#e3dccb] rounded"></div>
+    <div class="absolute top-[15%] right-[20%] w-16 h-12 bg-[#e3dccb] rounded"></div>
+    <div class="absolute bottom-[28%] left-[18%] w-20 h-16 bg-[#d4cebc] rounded"></div>
+    <div class="absolute bottom-[15%] right-[15%] w-16 h-12 bg-[#d4cebc] rounded"></div>
+  </div>
+
+  <!-- 顶部搜索 -->
+  <div class="absolute top-0 left-0 right-0 z-30 px-4 pt-3">
+
+    <div class="bg-white rounded-2xl shadow-xl shadow-black/15 p-3 flex items-center gap-2.5">
+      <i class="fa-solid fa-magnifying-glass text-midnight/40"></i>
+      <input id="search-input" type="text" placeholder="搜索 101 家真实店铺..." class="flex-1 text-sm bg-transparent outline-none placeholder:text-midnight/40">
+      <button id="locate-btn" class="w-9 h-9 rounded-xl bg-olive/10 flex items-center justify-center active:scale-95 transition-all" title="重新定位">
+        <i class="fa-solid fa-crosshairs text-olive text-sm"></i>
+      </button>
+    </div>
+
+    <!-- 城市切换 -->
+    <div class="flex gap-2 mt-2 overflow-x-auto hide-scrollbar">
+      <button class="city-chip filter-chip-active flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shadow-md" data-city="barcelona">📍 巴塞罗那</button>
+      <button class="city-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-city="madrid">马德里</button>
+      <button class="city-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-city="toledo">托莱多</button>
+      <button class="city-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-city="cuenca">昆卡</button>
+      <button class="city-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-city="valencia">瓦伦西亚</button>
+    </div>
+
+    <!-- 分类筛选 -->
+    <div class="flex gap-2 mt-2 overflow-x-auto hide-scrollbar">
+      <button class="cat-chip filter-chip-active flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap" data-cat="all">全部</button>
+      <button class="cat-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="restaurant">
+        <i class="fa-solid fa-utensils mr-1.5" style="color:#E63946"></i>餐厅
+      </button>
+      <button class="cat-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="dessert">
+        <i class="fa-solid fa-ice-cream mr-1.5" style="color:#F4A261"></i>甜品
+      </button>
+      <button class="cat-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="cafe">
+        <i class="fa-solid fa-mug-hot mr-1.5" style="color:#6F1D1B"></i>咖啡
+      </button>
+      <button class="cat-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="stroll">
+        <i class="fa-solid fa-shoe-prints mr-1.5" style="color:#2A9D8F"></i>闲逛
+      </button>
+    </div>
+  </div>
+
+  <!-- 标记层(用 grid) -->
+  <div id="markers-grid" class="markers-grid">
+    <div id="user-marker" class="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+      <div class="relative">
+        <div class="absolute inset-0 rounded-full bg-tomato/30 animate-ping"></div>
+        <div class="relative w-5 h-5 bg-tomato border-[3px] border-white rounded-full shadow-lg shadow-tomato/40"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View toggle: 店铺 / 预算 -->
+  <div class="absolute bottom-[400px] left-4 z-30">
+    <div class="bg-white rounded-2xl shadow-lg shadow-black/15 p-1 flex">
+      <button id="view-spots" class="view-toggle flex-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-midnight text-white">
+        <i class="fa-solid fa-store mr-1"></i>店铺
+      </button>
+      <button id="view-budget" class="view-toggle flex-1 px-3 py-1.5 rounded-xl text-xs font-medium text-midnight/60">
+        <i class="fa-solid fa-coins mr-1"></i>预算
+      </button>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <div class="absolute bottom-[310px] right-4 z-30 flex flex-col gap-2">
+    <button id="layer-btn" class="w-12 h-12 bg-white rounded-2xl shadow-lg shadow-black/15 flex items-center justify-center active:scale-95 transition-all">
+      <i class="fa-solid fa-layer-group text-midnight text-lg"></i>
+    </button>
+    <button id="gmaps-btn" class="w-12 h-12 bg-tomato rounded-2xl shadow-lg shadow-tomato/30 flex items-center justify-center active:scale-95 transition-all">
+      <i class="fa-brands fa-google text-white text-lg"></i>
+    </button>
+  </div>
+
+  <!-- 底部 Sheet -->
+  <div id="bottom-sheet" class="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl shadow-black/20 transition-all duration-300" style="padding-bottom: env(safe-area-inset-bottom); height: 380px;">
+    <div class="flex justify-center pt-3 pb-2">
+      <div class="w-10 h-1 bg-midnight/10 rounded-full"></div>
+    </div>
+    <div class="px-5 pb-2 flex items-center justify-between">
+      <div>
+        <h3 class="font-bold text-base" id="sheet-title">哥特区周边</h3>
+        <p class="text-xs text-midnight/50" id="sheet-sub">实时定位推荐</p>
+      </div>
+      <button id="sort-btn" class="text-xs text-midnight/60 px-2.5 py-1 rounded-full bg-gray-100 active:scale-95 transition-all">
+        <i class="fa-solid fa-arrow-down-wide-short mr-1"></i><span id="sort-label">距离</span>
+      </button>
+    </div>
+    <div class="overflow-y-auto hide-scrollbar" style="max-height: 290px;">
+      <div id="spots-list" class="px-5 pb-4 space-y-2.5"></div>
+      <div id="budget-panel" class="px-5 pb-4 hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TabBar -->
+<!-- ============== 添加新店浮动按钮 + 弹窗 ============== -->
+<button id="fab-add-spot" class="fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-tomato text-white shadow-lg shadow-tomato/40 flex items-center justify-center active:scale-90 transition-all" title="添加新店">
+  <i class="fa-solid fa-plus text-xl"></i>
+</button>
+
+<!-- 添加新店弹窗 -->
+<div id="add-spot-modal" class="hidden fixed inset-0 z-[60] bg-black/60 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl w-full max-w-lg p-5 pb-8 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold">添加新店</h2>
+      <button id="add-spot-close" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+    </div>
+
+    <form id="add-spot-form" class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">店名 *</label>
+        <input type="text" name="newName" required placeholder="如:La Esquina" class="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">类型 *</label>
+        <div class="grid grid-cols-4 gap-2">
+          <label class="cursor-pointer">
+            <input type="radio" name="newCat" value="restaurant" class="peer hidden" checked>
+            <div class="text-center py-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-tomato peer-checked:bg-tomato/5 text-xs">
+              <i class="fa-solid fa-utensils block text-base mb-0.5"></i>餐厅
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="newCat" value="dessert" class="peer hidden">
+            <div class="text-center py-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-tomato peer-checked:bg-tomato/5 text-xs">
+              <i class="fa-solid fa-ice-cream block text-base mb-0.5"></i>甜品
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="newCat" value="cafe" class="peer hidden">
+            <div class="text-center py-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-tomato peer-checked:bg-tomato/5 text-xs">
+              <i class="fa-solid fa-mug-hot block text-base mb-0.5"></i>咖啡
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="newCat" value="stroll" class="peer hidden">
+            <div class="text-center py-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-tomato peer-checked:bg-tomato/5 text-xs">
+              <i class="fa-solid fa-shoe-prints block text-base mb-0.5"></i>闲逛
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">城市 *</label>
+        <select name="newCity" required class="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+          <option value="">选择城市</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">地址(选填)</label>
+        <input type="text" name="newAddress" placeholder="街道 + 门牌号" class="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">拍照(选填,会作为封面)</label>
+        <label class="block w-full aspect-video bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer overflow-hidden relative">
+          <img id="new-spot-preview" class="hidden w-full h-full object-cover">
+          <div id="new-spot-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-midnight/40">
+            <i class="fa-solid fa-camera text-2xl mb-1"></i>
+            <span class="text-xs">点击拍照或上传</span>
+          </div>
+          <input type="file" name="newPhoto" accept="image/*" capture="environment" class="hidden" id="new-spot-photo-input">
+        </label>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-midnight/70 mb-1 block">备注/评价(选填)</label>
+        <textarea name="newNote" rows="3" placeholder="味道/价格/排队情况..." class="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm resize-none"></textarea>
+      </div>
+
+      <button type="submit" class="w-full py-3 bg-tomato text-white rounded-full font-semibold active:scale-95 transition-all mt-2">
+        <i class="fa-solid fa-check mr-1"></i>添加这家店
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+// ============== 添加新店逻辑 ==============
+const CUSTOM_SPOTS_KEY = 'custom_spots_v1';
+function getCustomSpots() {
+  return JSON.parse(localStorage.getItem(CUSTOM_SPOTS_KEY) || '[]');
+}
+function saveCustomSpot(s) {
+  const arr = getCustomSpots();
+  arr.push(s);
+  localStorage.setItem(CUSTOM_SPOTS_KEY, JSON.stringify(arr));
+}
+
+// 弹窗打开/关闭
+const modal = document.getElementById('add-spot-modal');
+document.getElementById('fab-add-spot').addEventListener('click', () => {
+  // 填城市选项
+  const sel = modal.querySelector('select[name=newCity]');
+  if (sel.options.length <= 1 && window.SLOW_SPAIN) {
+    window.SLOW_SPAIN.cities.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name_zh || c.name;
+      sel.appendChild(opt);
+    });
+  }
+  modal.classList.remove('hidden');
+});
+document.getElementById('add-spot-close').addEventListener('click', () => modal.classList.add('hidden'));
+modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+// 预览照片
+let newSpotPhotoDataUrl = null;
+document.getElementById('new-spot-photo-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      const ratio = Math.min(1, maxW / img.width);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      newSpotPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('new-spot-preview').src = newSpotPhotoDataUrl;
+      document.getElementById('new-spot-preview').classList.remove('hidden');
+      document.getElementById('new-spot-placeholder').classList.add('hidden');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// 提交表单
+document.getElementById('add-spot-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const name = f.newName.value.trim();
+  const cat = f.newCat.value;
+  const city = f.newCity.value;
+  if (!name || !city) { alert('店名和城市必填'); return; }
+
+  const spot = {
+    id: 'custom_' + Date.now(),
+    cat,
+    city,
+    name,
+    name_es: name,
+    google_query: name + ' ' + (window.SLOW_SPAIN.cities.find(c => c.id === city)?.name_es || ''),
+    address: f.newAddress.value.trim(),
+    tags: ['⭐ 我的发现'],
+    story: f.newNote.value.trim() || '旅行中发现的店',
+    hours: '营业时间未知',
+    price: '€€',
+    image: newSpotPhotoDataUrl || '/images/placeholder.jpg',
+    custom: true,
+    rating: 0,
+    createdAt: Date.now()
+  };
+  saveCustomSpot(spot);
+  alert(`✓ 已添加 ${name}!\n\n在「我的」→「我的发现」里可以看到它。`);
+  modal.classList.add('hidden');
+  f.reset();
+  newSpotPhotoDataUrl = null;
+  document.getElementById('new-spot-preview').classList.add('hidden');
+  document.getElementById('new-spot-placeholder').classList.remove('hidden');
+});
+</script>
+
+<div class="fixed bottom-0 left-0 right-0 z-50 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-tomato" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px] font-semibold">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 状态 ====================
+let userLat = null, userLng = null;
+let currentCity = 'barcelona';
+let currentCat = 'all';
+let currentSort = 'distance';
+
+function detectLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => resolve(null),
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 60000 }
+    );
+  });
+}
+
+function spotCoord(s, city) {
+  if (s.lat && s.lng) return { lat: s.lat, lng: s.lng };
+  const hash = (s.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return {
+    lat: city.lat + ((hash % 100) / 100 - 0.5) * 0.025,
+    lng: city.lng + (((hash * 7) % 100) / 100 - 0.5) * 0.025
+  };
+}
+
+function distKm(s, city) {
+  if (!userLat) return 0.5;
+  const c = spotCoord(s, city);
+  return window.SS.haversine(userLat, userLng, c.lat, c.lng);
+}
+
+// ==================== 标记渲染(grid) ====================
+function renderMarkers() {
+  const city = window.SLOW_SPAIN.cities.find(c => c.id === currentCity);
+  const spots = window.SLOW_SPAIN.spots[currentCity] || [];
+  const filtered = currentCat === 'all' ? spots : spots.filter(s => s.cat === currentCat);
+
+  // 按距离排序,取前 9 个作为地图标记
+  const sorted = filtered.slice().sort((a, b) => distKm(a, city) - distKm(b, city)).slice(0, 9);
+
+  const grid = document.getElementById('markers-grid');
+  // 保留 user-marker
+  const userMarker = document.getElementById('user-marker');
+  grid.innerHTML = '';
+  if (userMarker) grid.appendChild(userMarker);
+
+  sorted.forEach((s, idx) => {
+    const m = window.SLOW_SPAIN.categoryMeta[s.cat];
+    const el = document.createElement('div');
+    el.className = 'marker-pin m-' + s.cat;
+    el.dataset.id = s.id;
+    el.innerHTML = `<i class="fa-solid ${m.icon}"></i>`;
+    el.addEventListener('click', () => {
+      window.location.href = 'spot.html?id=' + s.id;
+    });
+    grid.appendChild(el);
+  });
+
+  console.log(`[Explore] Rendered ${sorted.length} markers for ${currentCity}, cat=${currentCat}`);
+}
+
+// ==================== 列表渲染 ====================
+function renderList() {
+  const city = window.SLOW_SPAIN.cities.find(c => c.id === currentCity);
+  const spots = window.SLOW_SPAIN.spots[currentCity] || [];
+  let filtered = currentCat === 'all' ? spots : spots.filter(s => s.cat === currentCat);
+
+  if (currentSort === 'distance') {
+    filtered.sort((a, b) => distKm(a, city) - distKm(b, city));
+  } else if (currentSort === 'rating') {
+    filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+
+  document.getElementById('sheet-title').textContent = city.name + '周边';
+  document.getElementById('sheet-sub').textContent = userLat
+    ? `实时定位 · ${filtered.length} 个好店`
+    : `${filtered.length} 个好店`;
+
+  const listEl = document.getElementById('spots-list');
+  listEl.innerHTML = filtered.map(s => {
+    const m = window.SLOW_SPAIN.categoryMeta[s.cat];
+    const d = userLat ? distKm(s, city).toFixed(1) + 'km' : s.distance;
+    return `
+    <div class="item-row flex items-center gap-3 p-2 rounded-xl" onclick="window.location='spot.html?id=${s.id}'">
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: ${m.color}22">
+        <i class="fa-solid ${m.icon}" style="color: ${m.color}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-sm truncate">${s.name}</h4>
+        <p class="text-xs text-midnight/60 truncate">${(s.tags || []).slice(0,2).join(' · ')} · ${d}</p>
+      </div>
+      <div class="flex items-center gap-1 text-xs">
+        <i class="fa-solid fa-star text-sand text-[10px]"></i>
+        <span class="font-semibold">${s.rating || '—'}</span>
+      </div>
+      <i class="fa-solid fa-chevron-right text-midnight/30 text-xs"></i>
+    </div>`;
+  }).join('');
+
+  console.log(`[Explore] Rendered ${filtered.length} list items`);
+}
+
+// ==================== 事件 ====================
+document.querySelectorAll('.cat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('filter-chip-active'));
+    chip.classList.add('filter-chip-active');
+    currentCat = chip.dataset.cat;
+    renderMarkers();
+    renderList();
+  });
+});
+
+document.querySelectorAll('.city-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.city-chip').forEach(c => c.classList.remove('filter-chip-active'));
+    chip.classList.add('filter-chip-active');
+    currentCity = chip.dataset.city;
+    renderMarkers();
+    renderList();
+  });
+});
+
+const SORT_LABELS = ['距离', '评分', '营业'];
+document.getElementById('sort-btn').addEventListener('click', () => {
+  const idx = SORT_LABELS.indexOf(document.getElementById('sort-label').textContent);
+  const next = (idx + 1) % SORT_LABELS.length;
+  document.getElementById('sort-label').textContent = SORT_LABELS[next];
+  currentSort = ['distance', 'rating', 'open'][next];
+  renderList();
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) {
+    renderList();
+    return;
+  }
+  let all = [];
+  Object.entries(window.SLOW_SPAIN.spots).forEach(([cid, arr]) => {
+    arr.forEach(s => all.push({ ...s, _cityId: cid }));
+  });
+  const matched = all.filter(s =>
+    (s.name || '').toLowerCase().includes(q) ||
+    (s.name_es || '').toLowerCase().includes(q) ||
+    (s.tags || []).some(t => t.toLowerCase().includes(q))
+  ).slice(0, 20);
+
+  const listEl = document.getElementById('spots-list');
+  document.getElementById('sheet-title').textContent = `搜索 "${q}"`;
+  document.getElementById('sheet-sub').textContent = `${matched.length} 个匹配`;
+  listEl.innerHTML = matched.map(s => {
+    const m = window.SLOW_SPAIN.categoryMeta[s.cat];
+    return `
+    <div class="item-row flex items-center gap-3 p-2 rounded-xl" onclick="window.location='spot.html?id=${s.id}'">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: ${m.color}22">
+        <i class="fa-solid ${m.icon}" style="color: ${m.color}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-sm truncate">${s.name}</h4>
+        <p class="text-xs text-midnight/60 truncate">${(s.tags || []).slice(0,1).join('')} · ${window.SLOW_SPAIN.cities.find(c => c.id === s._cityId).name}</p>
+      </div>
+      <i class="fa-solid fa-chevron-right text-midnight/30 text-xs"></i>
+    </div>`;
+  }).join('');
+});
+
+document.getElementById('locate-btn').addEventListener('click', async () => {
+  const loc = await detectLocation();
+  if (loc) {
+    userLat = loc.lat; userLng = loc.lng;
+    renderMarkers();
+    renderList();
+    alert('已更新定位');
+  } else {
+    alert('定位失败,请检查权限');
+  }
+});
+
+document.getElementById('gmaps-btn').addEventListener('click', () => {
+  const city = window.SLOW_SPAIN.cities.find(c => c.id === currentCity);
+  const url = userLat
+    ? `https://www.google.com/maps/search/?api=1&query=${city.lat},${city.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city.name + ' ' + city.name_es)}`;
+  window.open(url, '_blank');
+});
+
+document.getElementById('layer-btn').addEventListener('click', () => {
+  alert('图层切换: 标准 / 卫星\n(原型演示,真实 App 接入 Google Maps SDK)');
+});
+
+// ==================== 视图切换: 店铺 / 预算 ====================
+const PRICE_LEVELS = { '€': 15, '€€': 35, '€€€': 65, '€€€€': 120, '免费': 0 };
+
+function calcSpotCost(s) {
+  return PRICE_LEVELS[s.price] != null ? PRICE_LEVELS[s.price] : 25;
+}
+
+function renderBudget() {
+  const city = window.SLOW_SPAIN.cities.find(c => c.id === currentCity);
+  const spots = window.SLOW_SPAIN.spots[currentCity] || [];
+  const cats = { restaurant: [], dessert: [], cafe: [], stroll: [] };
+  spots.forEach(s => { if (cats[s.cat]) cats[s.cat].push(s); });
+
+  const avgPerMeal = (cat) => {
+    if (!cat.length) return 0;
+    return cat.reduce((sum, s) => sum + calcSpotCost(s), 0) / cat.length;
+  };
+
+  const costs = {
+    breakfast: avgPerMeal(cats.cafe) + avgPerMeal(cats.dessert),
+    lunch: avgPerMeal(cats.restaurant),
+    dinner: avgPerMeal(cats.restaurant),
+    snack: avgPerMeal(cats.cafe) * 0.5,
+    attraction: avgPerMeal(cats.stroll)
+  };
+  const suggestedPerDay = costs.breakfast + costs.lunch + costs.dinner + costs.snack + costs.attraction;
+
+  // 用户自定义预算(从 localStorage)
+  const BUDGET_KEY = 'slow_spain_budget_v1';
+  const allCustom = JSON.parse(localStorage.getItem(BUDGET_KEY) || '{}');
+  const custom = allCustom[currentCity] || {};
+  const val = (key, fallback) => {
+    if (custom[key] !== undefined) return custom[key];
+    return Math.round(fallback);
+  };
+  const items = [
+    { key: 'breakfast', icon: 'fa-mug-hot', label: '早餐 + 咖啡', cost: costs.breakfast, color: '#6F1D1B' },
+    { key: 'lunch', icon: 'fa-utensils', label: '午餐', cost: costs.lunch, color: '#E63946' },
+    { key: 'dessert', icon: 'fa-ice-cream', label: '下午茶 + 甜品', cost: costs.snack + avgPerMeal(cats.dessert) * 0.3, color: '#F4A261' },
+    { key: 'dinner', icon: 'fa-wine-glass', label: '晚餐 + Tapas', cost: costs.dinner, color: '#2A9D8F' },
+    { key: 'attraction', icon: 'fa-landmark', label: '景点门票', cost: costs.attraction, color: '#264653' }
+  ];
+  // 用用户值或建议值
+  const userCosts = {};
+  items.forEach(it => { userCosts[it.key] = val(it.key, it.cost); });
+  const perDay = userCosts.breakfast + userCosts.lunch + userCosts.dessert + userCosts.dinner + userCosts.attraction;
+
+  // 已花金额(从 localStorage)
+  const expenses = JSON.parse(localStorage.getItem('slow_spain_expenses') || '[]');
+  const cityExpenses = expenses.filter(e => e.city === currentCity);
+  const totalSpent = cityExpenses.reduce((s, e) => s + e.amount, 0);
+  const remaining = Math.round(perDay * (parseInt(localStorage.getItem('slow_spain_days_' + currentCity)) || 3) - totalSpent);
+
+  const panel = document.getElementById('budget-panel');
+  panel.innerHTML = `
+    <div class="space-y-3">
+
+      <!-- 切换: 预算 / 记账 -->
+      <div class="flex bg-gray-100 rounded-2xl p-1">
+        <button id="sub-budget" class="flex-1 py-1.5 rounded-xl text-xs font-medium" style="background:#1a1a1a; color:white;">
+          <i class="fa-solid fa-coins mr-1"></i>预算估算
+        </button>
+        <button id="sub-tracker" class="flex-1 py-1.5 rounded-xl text-xs font-medium text-midnight/60">
+          <i class="fa-solid fa-receipt mr-1"></i>记账
+        </button>
+      </div>
+
+      <!-- ============ 预算估算子面板 ============ -->
+      <div id="sub-budget-panel" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">${city.name} 每日预算</h3>
+          <div class="flex items-center gap-2">
+            <button id="budget-reset" class="text-[10px] text-tomato active:opacity-60 transition-opacity" title="恢复建议值">
+              <i class="fa-solid fa-rotate-left"></i> 建议值
+            </button>
+            <select id="days-input" class="text-xs bg-gray-100 rounded-full px-3 py-1 border-0 outline-none">
+              ${[1,2,3,4,5,6,7,8,9,10].map(d => `<option value="${d}" ${d===3?'selected':''}>${d} 天</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- 每餐建议 — 可点击编辑金额 -->
+        <div class="space-y-2" id="budget-items">
+          ${items.map(item => {
+            const v = userCosts[item.key];
+            const sug = Math.round(item.cost);
+            const isCustom = custom[item.key] !== undefined;
+            return `
+          <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3" data-item-key="${item.key}">
+            <div class="flex items-center gap-2.5 flex-1 min-w-0">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${item.color}22">
+                <i class="fa-solid ${item.icon} text-sm" style="color:${item.color}"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="text-sm block truncate">${item.label}</span>
+                <span class="text-[10px] ${isCustom ? 'text-tomato' : 'text-midnight/40'}">
+                  ${isCustom ? '已自定义' : `建议 €${sug}`}
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-0.5 text-tomato font-bold text-sm">
+              <span>€</span>
+              <input type="number" inputmode="decimal" step="1" min="0" value="${v}"
+                class="budget-input w-16 bg-white rounded-lg px-2 py-1 text-right text-midnight font-bold outline-none focus:ring-2 focus:ring-tomato/30"
+                data-key="${item.key}" data-suggested="${sug}">
+            </div>
+          </div>`;
+          }).join('')}
+        </div>
+
+        <!-- 每日合计 -->
+        <div class="rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #E63946, #6F1D1B)">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm opacity-90">人均/天</span>
+            <span class="text-2xl font-bold" id="per-day-total">€${Math.round(perDay)}</span>
+          </div>
+          <div class="text-xs opacity-80 flex items-center gap-1">
+            <span>${city.name} 1 人 1 天的餐饮 + 1 个景点</span>
+            ${Math.abs(perDay - suggestedPerDay) > 0.5 ? `
+              <span class="opacity-90">·</span>
+              <span class="opacity-90">${perDay > suggestedPerDay ? '↑' : '↓'} 建议 €${Math.round(suggestedPerDay)}</span>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- 整段行程 -->
+        <div class="bg-white rounded-2xl p-4 border border-midnight/10">
+          <h4 class="font-semibold text-sm mb-2">整段行程预估</h4>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-gray-50 rounded-lg p-2">
+              <div class="text-midnight/60">1 人 / 整段</div>
+              <div class="font-bold text-base">€<span id="budget-1p">0</span></div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-2">
+              <div class="text-midnight/60">2 人 / 整段</div>
+              <div class="font-bold text-base">€<span id="budget-2p">0</span></div>
+            </div>
+          </div>
+          <p class="text-[10px] text-midnight/40 mt-2">点金额可改,留 0 用建议值,改动自动保存</p>
+        </div>
+      </div>
+
+      <!-- ============ 记账子面板 ============ -->
+      <div id="sub-tracker-panel" class="space-y-3 hidden">
+        <!-- 总计 -->
+        <div class="rounded-2xl p-4 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #2A9D8F, #264653)">
+          <div class="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full"></div>
+          <div class="relative">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs opacity-90">${city.name} 已花</span>
+              <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full" id="spent-cnt">0 笔</span>
+            </div>
+            <div class="text-3xl font-bold mb-1">€<span id="spent-total">${totalSpent}</span></div>
+            <div class="flex items-center justify-between text-xs opacity-90">
+              <span>剩余预算 €<span id="spent-remaining">${remaining}</span></span>
+              <button id="spent-clear" class="opacity-80 active:opacity-50">
+                <i class="fa-solid fa-rotate-left"></i> 清空
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快速添加 -->
+        <div class="bg-white rounded-2xl p-4 border border-midnight/10">
+          <h4 class="font-semibold text-sm mb-3 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-plus text-tomato"></i>记一笔
+          </h4>
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <input id="ex-amount" type="number" inputmode="decimal" step="0.01" placeholder="0.00" class="flex-1 min-w-0 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none">
+              <select id="ex-cat" class="bg-gray-50 rounded-xl px-3 py-2 text-xs outline-none">
+                <option value="food">🍴 餐饮</option>
+                <option value="ticket">🎫 门票</option>
+                <option value="trans">🚇 交通</option>
+                <option value="shop">🛍️ 购物</option>
+                <option value="hotel">🏨 住宿</option>
+                <option value="other">📦 其他</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <input id="ex-note" type="text" placeholder="备注(可选)" class="flex-1 min-w-0 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none">
+              <button id="ex-add" class="bg-tomato text-white px-4 rounded-xl text-sm font-semibold active:scale-95 transition-all flex-shrink-0">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分类汇总 -->
+        <div class="bg-white rounded-2xl p-4 border border-midnight/10">
+          <h4 class="font-semibold text-sm mb-2">分类汇总</h4>
+          <div id="ex-cat-summary" class="space-y-1.5"></div>
+        </div>
+
+        <!-- 明细列表 -->
+        <div class="bg-white rounded-2xl p-4 border border-midnight/10">
+          <h4 class="font-semibold text-sm mb-2 flex items-center justify-between">
+            <span>明细</span>
+            <span class="text-[10px] text-midnight/40">最近 10 笔</span>
+          </h4>
+          <div id="ex-list" class="space-y-1"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 联动 days
+  const CAT_NAMES = { food: '🍴 餐饮', ticket: '🎫 门票', trans: '🚇 交通', shop: '🛍️ 购物', hotel: '🏨 住宿', other: '📦 其他' };
+  const CAT_COLORS = { food: '#E63946', ticket: '#6F1D1B', trans: '#264653', shop: '#F4A261', hotel: '#2A9D8F', other: '#999' };
+
+  // ========== 自定义预算编辑 ==========
+  function saveCustomBudget(key, value) {
+    const all = JSON.parse(localStorage.getItem(BUDGET_KEY) || '{}');
+    if (!all[currentCity]) all[currentCity] = {};
+    if (value === '' || isNaN(value) || value === null) {
+      delete all[currentCity][key];
+    } else {
+      all[currentCity][key] = parseFloat(value);
+    }
+    if (Object.keys(all[currentCity]).length === 0) delete all[currentCity];
+    localStorage.setItem(BUDGET_KEY, JSON.stringify(all));
+  }
+
+  function recalcPerDay() {
+    let sum = 0;
+    items.forEach(it => sum += (userCosts[it.key] || 0));
+    return sum;
+  }
+
+  function updateAllTotals() {
+    const sum = recalcPerDay();
+    const days = parseInt(document.getElementById('days-input').value) || 3;
+    document.getElementById('per-day-total').textContent = '€' + Math.round(sum);
+    document.getElementById('budget-1p').textContent = Math.round(sum * days);
+    document.getElementById('budget-2p').textContent = Math.round(sum * days * 2);
+    updateTracker();
+  }
+
+  // 绑定所有 budget input
+  document.querySelectorAll('.budget-input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const key = inp.dataset.key;
+      const suggested = parseFloat(inp.dataset.suggested);
+      const val = parseFloat(inp.value);
+      // 如果输入的值等于建议值,删掉自定义(回到默认)
+      if (val === suggested || isNaN(val) || inp.value === '') {
+        saveCustomBudget(key, '');
+        inp.value = suggested;
+        // 更新子标题
+        const label = inp.closest('[data-item-key]').querySelector('span:last-child');
+        if (label) { label.textContent = `建议 €${suggested}`; label.className = 'text-[10px] text-midnight/40'; }
+      } else {
+        saveCustomBudget(key, val);
+        userCosts[key] = val;
+        const label = inp.closest('[data-item-key]').querySelector('span:last-child');
+        if (label) { label.textContent = '已自定义'; label.className = 'text-[10px] text-tomato'; }
+      }
+      updateAllTotals();
+    });
+    // 焦点时全选
+    inp.addEventListener('focus', () => inp.select());
+  });
+
+  // 重置按钮:清掉该城市所有自定义
+  document.getElementById('budget-reset').onclick = () => {
+    if (!confirm(`恢复 ${city.name} 所有预算到建议值?`)) return;
+    const all = JSON.parse(localStorage.getItem(BUDGET_KEY) || '{}');
+    delete all[currentCity];
+    localStorage.setItem(BUDGET_KEY, JSON.stringify(all));
+    renderBudget(); // 重新渲染整个面板
+  };
+
+  const updateDays = () => {
+    const days = parseInt(document.getElementById('days-input').value);
+    localStorage.setItem('slow_spain_days_' + currentCity, days);
+    document.getElementById('budget-1p').textContent = Math.round(perDay * days);
+    document.getElementById('budget-2p').textContent = Math.round(perDay * days * 2);
+    updateTracker();
+  };
+  updateDays();
+  document.getElementById('days-input').addEventListener('change', updateDays);
+
+  // 子面板切换
+  const sb = document.getElementById('sub-budget');
+  const st = document.getElementById('sub-tracker');
+  sb.onclick = () => {
+    sb.style.background = '#1a1a1a'; sb.style.color = 'white';
+    st.style.background = ''; st.style.color = '';
+    document.getElementById('sub-budget-panel').classList.remove('hidden');
+    document.getElementById('sub-tracker-panel').classList.add('hidden');
+  };
+  st.onclick = () => {
+    st.style.background = '#1a1a1a'; st.style.color = 'white';
+    sb.style.background = ''; sb.style.color = '';
+    document.getElementById('sub-budget-panel').classList.add('hidden');
+    document.getElementById('sub-tracker-panel').classList.remove('hidden');
+    updateTracker();
+  };
+
+  // ========== 记账函数 ==========
+  function updateTracker() {
+    const allExp = JSON.parse(localStorage.getItem('slow_spain_expenses') || '[]');
+    const cityExp = allExp.filter(e => e.city === currentCity);
+    const days = parseInt(localStorage.getItem('slow_spain_days_' + currentCity) || '3');
+    const total = cityExp.reduce((s, e) => s + e.amount, 0);
+    const remaining = Math.round(perDay * days - total);
+
+    document.getElementById('spent-total').textContent = total.toFixed(2);
+    document.getElementById('spent-cnt').textContent = `${cityExp.length} 笔`;
+    document.getElementById('spent-remaining').textContent = remaining;
+    document.getElementById('spent-remaining').style.color = remaining < 0 ? '#FF8888' : '';
+
+    // 分类汇总
+    const catTotals = {};
+    cityExp.forEach(e => { catTotals[e.cat] = (catTotals[e.cat] || 0) + e.amount; });
+    const summary = document.getElementById('ex-cat-summary');
+    const catKeys = Object.keys(catTotals);
+    summary.innerHTML = catKeys.length === 0
+      ? '<p class="text-xs text-midnight/40 text-center py-2">还没有记账</p>'
+      : catKeys.map(k => {
+        const pct = total > 0 ? Math.round(catTotals[k] / total * 100) : 0;
+        return `
+        <div>
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span style="color:${CAT_COLORS[k]}">${CAT_NAMES[k]}</span>
+            <span class="font-semibold">€${catTotals[k].toFixed(2)} · ${pct}%</span>
+          </div>
+          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full" style="width:${pct}%; background:${CAT_COLORS[k]}"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+    // 明细列表(最新在前,最多 10)
+    const list = document.getElementById('ex-list');
+    const recent = cityExp.slice(-10).reverse();
+    list.innerHTML = recent.length === 0
+      ? '<p class="text-xs text-midnight/40 text-center py-3">记一笔,开始追踪</p>'
+      : recent.map(e => `
+        <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+          <span class="text-xs" style="color:${CAT_COLORS[e.cat]}">${CAT_NAMES[e.cat].split(' ')[0]}</span>
+          <span class="text-xs flex-1 truncate text-midnight/70">${e.note || '(无备注)'}</span>
+          <span class="text-xs font-semibold">€${e.amount.toFixed(2)}</span>
+          <button class="ex-del w-6 h-6 rounded-full bg-gray-50 text-midnight/40 active:bg-wine/10 active:text-wine flex items-center justify-center" data-id="${e.id}">
+            <i class="fa-solid fa-times text-[10px]"></i>
+          </button>
+        </div>
+      `).join('');
+    list.querySelectorAll('.ex-del').forEach(b => {
+      b.onclick = () => {
+        const allExp2 = JSON.parse(localStorage.getItem('slow_spain_expenses') || '[]');
+        const filtered = allExp2.filter(x => x.id !== b.dataset.id);
+        localStorage.setItem('slow_spain_expenses', JSON.stringify(filtered));
+        updateTracker();
+      };
+    });
+  }
+
+  document.getElementById('ex-add').onclick = () => {
+    const amount = parseFloat(document.getElementById('ex-amount').value);
+    if (!amount || amount <= 0) {
+      alert('请输入金额');
+      return;
+    }
+    const cat = document.getElementById('ex-cat').value;
+    const note = document.getElementById('ex-note').value.trim();
+    const allExp = JSON.parse(localStorage.getItem('slow_spain_expenses') || '[]');
+    allExp.push({
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
+      city: currentCity,
+      amount,
+      cat,
+      note,
+      ts: new Date().toISOString()
+    });
+    localStorage.setItem('slow_spain_expenses', JSON.stringify(allExp));
+    document.getElementById('ex-amount').value = '';
+    document.getElementById('ex-note').value = '';
+    updateTracker();
+  };
+
+  document.getElementById('spent-clear').onclick = () => {
+    if (!confirm('清空该城市的所有记账?')) return;
+    const allExp = JSON.parse(localStorage.getItem('slow_spain_expenses') || '[]');
+    const filtered = allExp.filter(e => e.city !== currentCity);
+    localStorage.setItem('slow_spain_expenses', JSON.stringify(filtered));
+    updateTracker();
+  };
+}
+
+document.getElementById('view-spots').addEventListener('click', () => {
+  document.getElementById('view-spots').classList.add('bg-midnight', 'text-white');
+  document.getElementById('view-spots').classList.remove('text-midnight/60');
+  document.getElementById('view-budget').classList.remove('bg-midnight', 'text-white');
+  document.getElementById('view-budget').classList.add('text-midnight/60');
+  document.getElementById('spots-list').classList.remove('hidden');
+  document.getElementById('budget-panel').classList.add('hidden');
+});
+document.getElementById('view-budget').addEventListener('click', () => {
+  document.getElementById('view-budget').classList.add('bg-midnight', 'text-white');
+  document.getElementById('view-budget').classList.remove('text-midnight/60');
+  document.getElementById('view-spots').classList.remove('bg-midnight', 'text-white');
+  document.getElementById('view-spots').classList.add('text-midnight/60');
+  document.getElementById('spots-list').classList.add('hidden');
+  document.getElementById('budget-panel').classList.remove('hidden');
+  renderBudget();
+});
+
+// 默认渲染预算面板(让用户首次就知道这个功能)
+renderBudget();
+
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+
+// ==================== 初始化 ====================
+(async function init() {
+  console.log('[Explore] init start');
+  console.log('[Explore] SLOW_SPAIN:', window.SLOW_SPAIN ? 'loaded' : 'NOT LOADED');
+  console.log('[Explore] SS.haversine:', window.SS && window.SS.haversine ? 'OK' : 'NOT LOADED');
+
+  const loc = await detectLocation();
+  if (loc) {
+    userLat = loc.lat; userLng = loc.lng;
+    console.log('[Explore] Got location:', loc);
+  }
+  renderMarkers();
+  renderList();
+  console.log('[Explore] init done');
+})();
+</script>
+</body>
+</html>

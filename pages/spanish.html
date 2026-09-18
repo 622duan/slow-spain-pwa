@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>应急西语 · 旅行短句</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .cat-chip { transition: all 0.2s; }
+  .cat-chip-active { background: #1a1a1a !important; color: white !important; }
+  .phrase-card { transition: all 0.2s; }
+  .play-btn { transition: transform 0.1s; }
+  .play-btn:active { transform: scale(0.9); }
+  .play-btn.playing { animation: pulse 1s infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  .tab-btn { transition: color 0.2s; }
+  /* 大字体谐音(便于速读) */
+  .pron-huge {
+    font-size: 1.5rem; font-weight: 800; color: #6F1D1B;
+    letter-spacing: 0.5px; line-height: 1.4;
+    word-break: keep-all; overflow-wrap: break-word;
+  }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <!-- Header -->
+  <div class="px-5 mt-2">
+    <div class="bg-gradient-to-br from-wine via-tomato to-sand rounded-3xl p-5 text-white shadow-lg shadow-wine/20 relative overflow-hidden">
+      <div class="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full"></div>
+      <div class="absolute -bottom-12 right-12 w-24 h-24 bg-white/10 rounded-full"></div>
+
+      <a href="me.html" class="relative inline-flex items-center gap-1.5 text-xs opacity-90 mb-3 active:opacity-70">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>返回</span>
+      </a>
+
+      <div class="relative">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-comments text-2xl"></i>
+          <h1 class="text-2xl font-bold">应急西语</h1>
+        </div>
+        <p class="text-sm opacity-90 mb-2">讲价 · 少盐 · 问路 · 紧急 — 看谐音就能开口</p>
+        <p class="text-[10px] opacity-80">点 🔊 真机读西语,跟着谐音念</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类 -->
+  <div class="px-5 mt-5">
+    <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+      <button class="cat-chip cat-chip-active flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap shadow-md" data-cat="all">
+        <i class="fa-solid fa-layer-group mr-1"></i>全部
+      </button>
+      <button class="cat-chip flex-shrink-0 px-4 py-2 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="food">
+        <i class="fa-solid fa-utensils mr-1.5" style="color:#E63946"></i>点菜
+      </button>
+      <button class="cat-chip flex-shrink-0 px-4 py-2 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="bargain">
+        <i class="fa-solid fa-hand-holding-dollar mr-1.5" style="color:#F4A261"></i>讲价
+      </button>
+      <button class="cat-chip flex-shrink-0 px-4 py-2 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="directions">
+        <i class="fa-solid fa-map-location-dot mr-1.5" style="color:#2A9D8F"></i>问路
+      </button>
+      <button class="cat-chip flex-shrink-0 px-4 py-2 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="emergency">
+        <i class="fa-solid fa-circle-exclamation mr-1.5" style="color:#264653"></i>紧急
+      </button>
+      <button class="cat-chip flex-shrink-0 px-4 py-2 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-cat="chitchat">
+        <i class="fa-solid fa-handshake mr-1.5" style="color:#6F1D1B"></i>寒暄
+      </button>
+    </div>
+  </div>
+
+  <!-- 短语卡片 -->
+  <div id="phrases-container" class="px-5 mt-3 space-y-2.5 pb-4"></div>
+
+  <!-- 提示 -->
+  <div class="px-5 mt-3">
+    <div class="bg-gradient-to-br from-sand/15 to-tomato/10 rounded-2xl p-4 flex gap-3">
+      <div class="w-10 h-10 rounded-full bg-sand/30 flex items-center justify-center flex-shrink-0">
+        <i class="fa-solid fa-lightbulb text-wine"></i>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm mb-1">西语小贴士</h4>
+        <p class="text-xs text-midnight/70 leading-relaxed">
+          西班牙人说话舌头卷,辅音咬字。跟着谐音念 3 遍他们就懂你了。少说多笑,西班牙人比你想的更热情。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 应急短句(口语化、实用) ====================
+// 全部来自你的攻略原文 + 真实场景
+const PHRASES = [
+  // ===== 点菜(餐厅内) =====
+  { id: 'f1', cat: 'food', es: 'Poca sal, por favor', zh: '请少放盐,谢谢(西班牙菜偏咸)', ipa: '[po-ka sal por fa-bo]', tone: '波卡 萨尔 波尔 法沃尔' },
+  { id: 'f2', cat: 'food', es: 'Sin picante, por favor', zh: '请不要辣', ipa: '[sin pi-kan-te]', tone: '辛 皮看特' },
+  { id: 'f3', cat: 'food', es: 'La cuenta, por favor', zh: '麻烦买单', ipa: '[la kwen-ta]', tone: '啦 困塔' },
+  { id: 'f4', cat: 'food', es: '¿Qué recomienda?', zh: '您推荐什么?', ipa: '[ke re-komjen-da]', tone: 'ke 雷 靠木见 打' },
+  { id: 'f5', cat: 'food', es: 'Para llevar', zh: '打包带走', ipa: '[pa-ra ʎe-bar]', tone: '巴拉 耶巴尔' },
+  { id: 'f6', cat: 'food', es: 'Una mesa para dos', zh: '两人位的桌子', ipa: '[u-na me-sa pa-ra dos]', tone: '乌那 美萨 巴拉 多斯' },
+  { id: 'f7', cat: 'food', es: 'La carta, por favor', zh: '请给我菜单', ipa: '[la kar-ta]', tone: '啦 卡尔塔' },
+  { id: 'f8', cat: 'food', es: 'Está delicioso', zh: '非常好吃(夸赞)', ipa: '[es-ta de-li-θjo-so]', tone: '埃斯塔 德里西奥索' },
+  { id: 'f9', cat: 'food', es: 'Otra más, por favor', zh: '再来一份(必杀)', ipa: '[o-tra mas]', tone: '奥特拉 玛斯' },
+  { id: 'f10', cat: 'food', es: 'Una caña, por favor', zh: '一杯啤酒(本地人点法)', ipa: '[u-na ka-ɲa]', tone: '乌那 卡尼亚' },
+
+  // ===== 讲价 / 购物 =====
+  { id: 'b1', cat: 'bargain', es: '¿Cuánto cuesta?', zh: '多少钱?', ipa: '[kwan-to kwes-ta]', tone: '宽托 奎斯塔' },
+  { id: 'b2', cat: 'bargain', es: 'Es muy caro', zh: '太贵了', ipa: '[es muj ka-ro]', tone: '埃斯 木伊 卡罗' },
+  { id: 'b3', cat: 'bargain', es: '¿Tiene algo más barato?', zh: '有便宜点的吗?', ipa: '[tje-ne al-go mas ba-ra-to]', tone: '切内 阿尔戈 玛斯 巴拉托' },
+  { id: 'b4', cat: 'bargain', es: '¿Me hace descuento?', zh: '能便宜点吗?(砍价)', ipa: '[me a-se des-kwen-to]', tone: '梅 阿塞 德斯宽托' },
+  { id: 'b5', cat: 'bargain', es: 'Solo estoy mirando', zh: '我只是看看(导购别烦)', ipa: '[so-lo es-toj mi-ran-do]', tone: '索洛 埃斯托伊 米兰多' },
+  { id: 'b6', cat: 'bargain', es: 'Me lo llevo', zh: '我要了(成交)', ipa: '[me lo ʎe-vo]', tone: '梅 洛 耶沃' },
+  { id: 'b7', cat: 'bargain', es: '¿Puedo pagar con tarjeta?', zh: '可以刷卡吗?', ipa: '[pwe-do pa-gar kon tar-xe-ta]', tone: '普韦多 帕加尔 空 塔尔赫塔' },
+  { id: 'b8', cat: 'bargain', es: 'No quiero bolsa', zh: '不要袋子(环保+省钱)', ipa: '[no kje-ro bol-sa]', tone: '诺 切罗 博尔萨' },
+  { id: 'b9', cat: 'bargain', es: '¿Acepta efectivo?', zh: '收现金吗?', ipa: '[a-θep-ta e-fek-ti-bo]', tone: '阿塞普塔 埃费克蒂沃' },
+
+  // ===== 问路 =====
+  { id: 'd1', cat: 'directions', es: '¿Dónde está...?', zh: '...在哪里?', ipa: '[don-de es-ta]', tone: '东待 埃斯塔' },
+  { id: 'd2', cat: 'directions', es: '¿Cómo llego a...?', zh: '怎么去...?', ipa: '[ko-mo ʎe-go a]', tone: '扣莫 列依戈 阿' },
+  { id: 'd3', cat: 'directions', es: '¿Está lejos?', zh: '远吗?', ipa: '[es-ta le-xos]', tone: '埃斯塔 雷霍斯' },
+  { id: 'd4', cat: 'directions', es: 'A la derecha', zh: '往右', ipa: '[a la de-re-θa]', tone: '啊啦 德里塔' },
+  { id: 'd5', cat: 'directions', es: 'A la izquierda', zh: '往左', ipa: '[a la is-kjer-da]', tone: '啊啦 伊斯凯尔达' },
+  { id: 'd6', cat: 'directions', es: 'Aquí mismo', zh: '就在这里', ipa: '[a-ki mis-mo]', tone: '阿基 米斯莫' },
+  { id: 'd7', cat: 'directions', es: 'Estoy perdido', zh: '我迷路了', ipa: '[es-toj per-di-do]', tone: '埃斯托伊 佩尔迪多' },
+  { id: 'd8', cat: 'directions', es: '¿Puede mostrarme en el mapa?', zh: '能在地图上指给我看吗?', ipa: '[pwe-de mos-trar-me en el ma-pa]', tone: '普韦德 莫斯特拉梅 恩 埃尔 玛帕' },
+
+  // ===== 紧急 =====
+  { id: 'e1', cat: 'emergency', es: '¡Ayuda!', zh: '救命!', ipa: '[a-ʝu-da]', tone: '阿尤达' },
+  { id: 'e2', cat: 'emergency', es: 'Llame a la policía', zh: '请叫警察', ipa: '[ʎa-me a la po-li-θja]', tone: '雅梅 啊啦 波利西亚' },
+  { id: 'e3', cat: 'emergency', es: 'Necesito un médico', zh: '我需要医生', ipa: '[ne-θe-si-to un me-di-ko]', tone: '内塞西托 温 美迪科' },
+  { id: 'e4', cat: 'emergency', es: 'Me han robado', zh: '我被偷了', ipa: '[me an ro-ba-do]', tone: '梅 安 罗巴多' },
+  { id: 'e5', cat: 'emergency', es: '¿Dónde está el hospital?', zh: '医院在哪里?', ipa: '[don-de es-ta el os-pi-tal]', tone: '东待 埃斯塔 埃尔 奥斯皮塔尔' },
+  { id: 'e6', cat: 'emergency', es: 'No entiendo', zh: '我听不懂', ipa: '[no en-tjen-do]', tone: '诺 恩见多' },
+
+  // ===== 寒暄 =====
+  { id: 'g1', cat: 'chitchat', es: '¡Hola! ¿Qué tal?', zh: '嗨!你怎么样?(万能开场)', ipa: '[o-la ke tal]', tone: '哦拉 ke 塔尔' },
+  { id: 'g2', cat: 'chitchat', es: 'Mucho gusto', zh: '很高兴认识你', ipa: '[mu-tʃo gus-to]', tone: '木秋 古斯托' },
+  { id: 'g3', cat: 'chitchat', es: 'Por nada', zh: '不客气', ipa: '[por na-da]', tone: '波尔 那达' },
+  { id: 'g4', cat: 'chitchat', es: 'No hablo español', zh: '我不会说西语', ipa: '[no a-blo es-pa-ɲol]', tone: '诺 阿布洛 埃斯帕尼奥尔' },
+  { id: 'g5', cat: 'chitchat', es: '¿Hablas inglés?', zh: '你会说英语吗?', ipa: '[a-blas in-gles]', tone: '阿布拉斯 英格莱斯' },
+  { id: 'g6', cat: 'chitchat', es: '¡Buen provecho!', zh: '祝你好胃口!(饭前)', ipa: '[bwen pro-be-tʃo]', tone: '布温 普罗贝秋' },
+  { id: 'g7', cat: 'chitchat', es: 'Salud', zh: '干杯!(碰杯)', ipa: '[sa-lud]', tone: '萨鲁德' },
+  { id: 'g8', cat: 'chitchat', es: 'Una pregunta, ¿puedo?', zh: '请问,问您个事?', ipa: '[u-na pre-gun-ta pwe-do]', tone: '乌那 普雷贡塔 普韦多' }
+];
+
+const CAT_LABEL = {
+  food: { icon: 'fa-utensils', color: '#E63946', name: '点菜' },
+  bargain: { icon: 'fa-hand-holding-dollar', color: '#F4A261', name: '讲价' },
+  directions: { icon: 'fa-map-location-dot', color: '#2A9D8F', name: '问路' },
+  emergency: { icon: 'fa-circle-exclamation', color: '#264653', name: '紧急' },
+  chitchat: { icon: 'fa-handshake', color: '#6F1D1B', name: '寒暄' }
+};
+
+let currentCat = 'all';
+
+function render() {
+  const container = document.getElementById('phrases-container');
+  const filtered = currentCat === 'all' ? PHRASES : PHRASES.filter(p => p.cat === currentCat);
+
+  container.innerHTML = filtered.map(p => {
+    const c = CAT_LABEL[p.cat];
+    return `
+    <div class="phrase-card bg-white rounded-2xl p-4 shadow-sm">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <div class="flex-1 min-w-0">
+          <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold mb-1.5" style="background-color:${c.color}22; color:${c.color}">
+            <i class="fa-solid ${c.icon} mr-1"></i>${c.name}
+          </span>
+          <h3 class="es-text text-xl font-bold mb-1.5 leading-tight">${p.es}</h3>
+          <p class="text-sm text-midnight/70">${p.zh}</p>
+        </div>
+        <button class="play-btn w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" data-text="${p.es}" style="background-color:${c.color}22">
+          <i class="fa-solid fa-volume-high text-lg" style="color:${c.color}"></i>
+        </button>
+      </div>
+
+      <!-- 中文谐音 — 重点!大字! -->
+      <div class="rounded-xl p-3 mb-2" style="background: linear-gradient(135deg, ${c.color}11 0%, ${c.color}22 100%);">
+        <div class="flex items-center gap-1.5 mb-1">
+          <i class="fa-solid fa-comment-dots text-wine text-xs"></i>
+          <span class="text-[10px] text-midnight/60 font-semibold uppercase tracking-wide">中文谐音 · 跟着念</span>
+        </div>
+        <p class="pron-huge">${p.tone}</p>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] text-midnight/40 font-mono">IPA</span>
+          <span class="text-[11px] text-midnight/60 font-mono">${p.ipa}</span>
+        </div>
+        <button class="copy-btn text-xs text-midnight/40 active:text-tomato" data-text="${p.es}">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 绑定播放
+  container.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playText(btn.dataset.text, btn);
+    });
+  });
+  container.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(btn.dataset.text);
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check text-olive"></i>';
+        setTimeout(() => btn.innerHTML = orig, 1200);
+      } catch {}
+    });
+  });
+}
+
+function playText(text, btn) {
+  if (btn) {
+    document.querySelectorAll('.play-btn.playing').forEach(b => {
+      if (b !== btn) {
+        b.classList.remove('playing');
+        b.querySelector('i').classList.remove('fa-pause');
+        b.querySelector('i').classList.add('fa-volume-high');
+      }
+    });
+    btn.classList.add('playing');
+    btn.querySelector('i').classList.remove('fa-volume-high');
+    btn.querySelector('i').classList.add('fa-pause');
+  }
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'es-ES';
+    u.rate = 0.85;
+    u.onend = () => {
+      if (btn) {
+        btn.classList.remove('playing');
+        btn.querySelector('i').classList.remove('fa-pause');
+        btn.querySelector('i').classList.add('fa-volume-high');
+      }
+    };
+    window.speechSynthesis.speak(u);
+  } else {
+    alert(`播放(原型演示):\n\n${text}\n\n真机会调用系统 TTS 朗读`);
+    if (btn) {
+      btn.classList.remove('playing');
+      btn.querySelector('i').classList.remove('fa-pause');
+      btn.querySelector('i').classList.add('fa-volume-high');
+    }
+  }
+}
+
+document.querySelectorAll('.cat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('cat-chip-active'));
+    chip.classList.add('cat-chip-active');
+    currentCat = chip.dataset.cat;
+    render();
+  });
+});
+
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+
+render();
+</script>
+</body>
+</html>

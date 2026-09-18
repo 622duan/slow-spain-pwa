@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>心愿单 · Wishlist</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .filter-chip-active { background: #1a1a1a !important; color: white !important; }
+  .item-row { transition: transform 0.1s; cursor: pointer; }
+  .item-row:active { transform: scale(0.98); }
+  .tab-btn { transition: color 0.2s; }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <div class="px-5 mt-2 mb-5">
+    <h1 class="text-2xl font-bold mb-1">心愿单</h1>
+    <p class="text-sm text-midnight/60">本地存储 · 跨 5 个城市</p>
+  </div>
+
+  <div class="px-5">
+    <div class="bg-gradient-to-br from-tomato via-wine to-midnight rounded-3xl p-5 text-white shadow-lg shadow-tomato/20 mb-5">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="text-xs opacity-80 mb-1">收藏进度</div>
+          <div class="text-3xl font-bold"><span id="bm-total">0</span> / 93</div>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
+          <i class="fa-solid fa-bookmark text-2xl"></i>
+        </div>
+      </div>
+      <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+        <div id="bm-bar" class="h-full bg-white rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <div class="mt-2 text-[10px] opacity-80">已收藏的所有想去的地方</div>
+    </div>
+  </div>
+
+  <div class="px-5 mb-3">
+    <div class="flex gap-2 overflow-x-auto hide-scrollbar">
+      <button class="filter-chip filter-chip-active px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap" data-filter="all">全部</button>
+      <button class="filter-chip px-3.5 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-filter="visited">
+        <i class="fa-solid fa-check-circle mr-1 text-olive"></i>已打卡
+      </button>
+      <button class="filter-chip px-3.5 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-filter="restaurant">
+        <i class="fa-solid fa-utensils mr-1" style="color:#E63946"></i>餐厅
+      </button>
+      <button class="filter-chip px-3.5 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-filter="dessert">
+        <i class="fa-solid fa-ice-cream mr-1" style="color:#F4A261"></i>甜品
+      </button>
+      <button class="filter-chip px-3.5 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-filter="cafe">
+        <i class="fa-solid fa-mug-hot mr-1" style="color:#6F1D1B"></i>咖啡
+      </button>
+      <button class="filter-chip px-3.5 py-1.5 rounded-full bg-white text-midnight/70 text-xs font-medium whitespace-nowrap shadow-sm" data-filter="stroll">
+        <i class="fa-solid fa-shoe-prints mr-1" style="color:#2A9D8F"></i>闲逛
+      </button>
+    </div>
+  </div>
+
+  <div id="wishlist-container" class="px-5"></div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px]">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-tomato" data-target="wishlist">
+      <i class="fa-solid fa-bookmark text-lg"></i>
+      <span class="text-[10px] font-semibold">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 数据 ====================
+const CITY_ORDER = ['barcelona', 'valencia', 'cuenca', 'toledo', 'madrid'];
+let currentFilter = (new URLSearchParams(location.search)).get('filter') || 'all';
+
+function isVisited(sid) {
+  return localStorage.getItem('visited_' + sid) === '1';
+}
+
+function getBookmarks() {
+  const all = [];
+  Object.entries(window.SLOW_SPAIN.spots).forEach(([cid, arr]) => {
+    arr.forEach(s => {
+      if (localStorage.getItem('bm_' + s.id) === '1') {
+        all.push({ ...s, _cityId: cid, _visited: isVisited(s.id) });
+      }
+    });
+  });
+  return all;
+}
+
+function render() {
+  const all = getBookmarks();
+  document.getElementById('bm-total').textContent = all.length;
+  const total = Object.values(window.SLOW_SPAIN.spots).flat().length;
+  document.getElementById('bm-bar').style.width = (all.length / total * 100) + '%';
+
+  let filtered = all;
+  if (currentFilter === 'visited') filtered = all.filter(s => s._visited);
+  else if (currentFilter !== 'all') filtered = all.filter(s => s.cat === currentFilter);
+
+  // 高亮当前 filter
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.classList.toggle('filter-chip-active', c.dataset.filter === currentFilter);
+  });
+
+  const container = document.getElementById('wishlist-container');
+
+  if (all.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12 text-midnight/50">
+        <i class="fa-solid fa-bookmark text-4xl mb-3 block opacity-50"></i>
+        <p class="text-sm font-medium mb-1">心愿单是空的</p>
+        <p class="text-xs text-midnight/40 mb-4">在任何一个店铺详情页点右上角 ♡ 即可收藏</p>
+        <a href="explore.html" class="inline-block px-4 py-2 bg-tomato text-white rounded-full text-xs font-semibold">
+          去探索 →
+        </a>
+      </div>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-center py-8 text-midnight/40 text-sm">${currentFilter === 'visited' ? '还没有打卡的店' : '该分类暂无收藏'}</div>`;
+    return;
+  }
+
+  // 按城市分组
+  let html = '';
+  CITY_ORDER.forEach((cityId, idx) => {
+    const city = window.SLOW_SPAIN.cities.find(c => c.id === cityId);
+    if (!city) return;
+    const list = filtered.filter(s => s._cityId === cityId);
+    if (list.length === 0) return;
+
+    const isCurrent = cityId === 'barcelona';
+    html += `
+    <div class="${idx === 0 ? '' : 'mt-6'}">
+      <div class="flex items-center gap-3 mb-3 cursor-pointer" onclick="window.location='city.html?id=${cityId}'">
+        <img src="${city.cover}" class="w-10 h-10 rounded-xl object-cover">
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h3 class="font-bold">${city.name}</h3>
+            ${isCurrent ? '<span class="px-1.5 py-0.5 rounded-md bg-olive/15 text-olive text-[9px] font-semibold"><i class="fa-solid fa-location-dot"></i> 当前</span>' : ''}
+          </div>
+          <p class="text-[10px] text-midnight/60">${list.length} 个收藏</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-midnight/30 text-xs"></i>
+      </div>
+      <div class="space-y-2">`;
+
+    list.forEach(s => {
+      const m = window.SLOW_SPAIN.categoryMeta[s.cat];
+      const visited = s._visited;
+      html += `
+        <div class="item-row bg-white rounded-2xl p-3 shadow-sm flex gap-3 ${visited ? 'opacity-70' : ''}" onclick="window.location='spot.html?id=${s.id}'">
+          <div class="relative flex-shrink-0">
+            <img src="${s.image}" class="w-16 h-16 rounded-xl object-cover ${visited ? 'grayscale' : ''}">
+            ${visited ? '<div class="absolute inset-0 bg-olive/30 rounded-xl flex items-center justify-center"><i class="fa-solid fa-check-circle text-white text-xl"></i></div>' : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <h4 class="font-semibold text-sm truncate">${s.name}</h4>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button class="visit-btn w-7 h-7 rounded-full ${visited ? 'bg-olive/15 text-olive' : 'bg-gray-100 text-midnight/40'} flex items-center justify-center text-[10px]"
+                  data-on="${visited ? '1' : '0'}" data-sid="${s.id}"
+                  onclick="event.stopPropagation(); toggleVisited(this)">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+                <button class="bookmark-btn" onclick="event.stopPropagation(); toggleBookmark(this, '${s.id}')" data-on="1">
+                  <i class="fa-solid fa-bookmark text-tomato text-sm"></i>
+                </button>
+              </div>
+            </div>
+            <p class="text-[10px] text-midnight/60 mb-1.5 line-clamp-1">${(s.tags || []).slice(0,2).join(' · ')}</p>
+            <div class="flex items-center gap-2 text-[10px]">
+              <span style="color:${m.color}"><i class="fa-solid ${m.icon} mr-0.5"></i>${m.name}</span>
+              ${visited ? '<span class="text-olive"><i class="fa-solid fa-check-circle mr-0.5"></i>已打卡</span>' : ''}
+              ${!visited && s.hot ? '<span class="text-tomato"><i class="fa-solid fa-fire mr-0.5"></i>编辑推荐</span>' : ''}
+            </div>
+          </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleBookmark(btn, spotId) {
+  const icon = btn.querySelector('i');
+  const isOn = btn.dataset.on === '1';
+  if (isOn) {
+    btn.dataset.on = '0';
+    icon.classList.remove('fa-solid', 'text-tomato');
+    icon.classList.add('fa-regular', 'text-midnight/40');
+    localStorage.setItem('bm_' + spotId, '0');
+    // 移除卡片
+    btn.closest('.item-row').style.transition = 'opacity 0.3s';
+    btn.closest('.item-row').style.opacity = '0';
+    setTimeout(() => render(), 300);
+  }
+}
+
+// 打卡切换
+function toggleVisited(btn) {
+  const sid = btn.dataset.sid;
+  const isOn = btn.dataset.on === '1';
+  if (isOn) {
+    localStorage.setItem('visited_' + sid, '0');
+  } else {
+    localStorage.setItem('visited_' + sid, '1');
+  }
+  render();
+}
+
+// 筛选
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('filter-chip-active'));
+    chip.classList.add('filter-chip-active');
+    currentFilter = chip.dataset.filter;
+    render();
+  });
+});
+
+// TabBar
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+
+render();
+</script>
+</body>
+</html>

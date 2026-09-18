@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>行程 · Journey</title>
+<meta name="theme-color" content="#E63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" "default">
+<meta name="apple-mobile-web-app-title" content="Slow Spain">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="../data.js?v=v3.1.0"></script>
+<script src="../data-loader.js?v=v3.1.0"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tomato: '#E63946', sand: '#F4A261', olive: '#2A9D8F',
+        midnight: '#264653', wine: '#6F1D1B', cream: '#F1FAEE'
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #F8F9FB; }
+  .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .city-card { transition: all 0.2s; cursor: pointer; }
+  .city-card:active { transform: scale(0.98); }
+  .tab-btn { transition: color 0.2s; }
+  .complete-btn { transition: all 0.15s; }
+  .complete-btn:active { transform: scale(0.95); }
+  .complete-btn.undo { background: #F1FAEE !important; color: #2A9D8F !important; border-color: #2A9D8F !important; }
+</style>
+<script>
+  // 强制清理老 SW v2.x 残留,加载最新 data
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(reg => reg.unregister()))
+    ).then(() => caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    )).then(() => navigator.serviceWorker.register('../sw.js?v=v3.2.0'))
+      .then(reg => console.log('[SW v3] registered:', reg.scope))
+      .catch(err => console.warn('[SW v3] failed:', err.message));
+  }
+</script>
+</head>
+<body class="text-midnight">
+<script>
+  }
+</script>
+<div class="w-full h-full overflow-y-auto pb-32 hide-scrollbar">
+  <div class="px-5 mt-2">
+    <h1 class="text-2xl font-bold mb-1">你的路线</h1>
+    <p class="text-sm text-midnight/60 mb-5" id="trip-sub">6 站 · 11 天 · 西班牙纵贯</p>
+
+    <!-- 当前进度卡 -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-3 text-sm">
+        <div>
+          <span class="font-semibold" id="cur-day">Day 8</span>
+          <span class="text-midnight/50 ml-1">/ 11</span>
+        </div>
+        <div class="text-tomato font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-location-dot mr-1 animate-pulse"></i>
+          <span id="cur-city">巴塞罗那</span>
+        </div>
+      </div>
+      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div id="prog-bar" class="h-full bg-gradient-to-r from-tomato via-sand to-olive rounded-full transition-all duration-500" style="width: 73%"></div>
+      </div>
+      <div class="flex justify-between mt-2 text-[10px] text-midnight/50">
+        <span>起点 马德里</span>
+        <span>Day 11</span>
+        <span>返程 马德里</span>
+      </div>
+    </div>
+
+    <!-- 重置按钮 -->
+    <div class="flex justify-end mb-3">
+      <button id="reset-journey" class="text-[10px] text-midnight/50 active:text-tomato transition-colors">
+        <i class="fa-solid fa-rotate-left mr-1"></i>重置起点
+      </button>
+    </div>
+  </div>
+
+  <div class="px-5">
+    <div class="relative">
+      <div class="absolute left-[26px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-tomato via-sand to-olive"></div>
+      <div id="city-list"></div>
+    </div>
+  </div>
+
+  <div class="px-5 mt-4">
+    <div class="bg-gradient-to-br from-midnight to-olive/80 rounded-2xl p-4 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <i class="fa-solid fa-route text-sand"></i>
+        <span class="text-xs uppercase tracking-wider opacity-80">下一步</span>
+      </div>
+      <h4 class="font-bold mb-1" id="next-hint">--</h4>
+      <p class="text-xs opacity-80 mb-3 leading-relaxed" id="next-desc">--</p>
+      <button id="next-btn" class="w-full py-2.5 bg-white text-midnight rounded-xl text-xs font-semibold active:scale-95 transition-all">
+        <span id="next-btn-text">完成 → 下一站</span> <i class="fa-solid fa-arrow-right ml-1"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass bg-white/85 border-t border-black/5">
+  <div class="flex justify-around items-center pt-2 pb-1 px-2">
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="now">
+      <i class="fa-solid fa-sparkles text-lg"></i>
+      <span class="text-[10px]">此刻</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="explore">
+      <i class="fa-solid fa-map text-lg"></i>
+      <span class="text-[10px]">探索</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-tomato" data-target="journey">
+      <i class="fa-solid fa-route text-lg"></i>
+      <span class="text-[10px] font-semibold">行程</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="wishlist">
+      <i class="fa-regular fa-bookmark text-lg"></i>
+      <span class="text-[10px]">心愿</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center gap-0.5 py-1 px-3 text-midnight/50" data-target="me">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px]">我的</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ==================== 行程数据 ====================
+// 行程顺序:Madrid → Toledo → Cuenca → Valencia → Barcelona → Madrid
+const JOURNEY = [
+  { cityId: 'madrid',    day: 'Day 1-2',  desc: '首都 · 起点与终点',  tip: 'Restaurante Botín · LANA 牛排',           fromTo: '抵达马德里机场' },
+  { cityId: 'toledo',    day: 'Day 3',    desc: '中世纪古城',           tip: 'AVE 高铁 30min · 古城一日游',                fromTo: '马德里 → 托莱多' },
+  { cityId: 'cuenca',    day: 'Day 4',    desc: '悬崖小镇 · 悬屋之谜',  tip: 'AVE 转车 · 半天足够',                       fromTo: '托莱多 → 昆卡' },
+  { cityId: 'valencia',  day: 'Day 5-6',  desc: '地中海 · 海鲜饭故乡',   tip: '高铁 1h · 中央市场必吃海鲜饭',              fromTo: '昆卡 → 瓦伦西亚' },
+  { cityId: 'barcelona', day: 'Day 7-10', desc: '高迪之城 · 加泰罗尼亚', tip: 'AVE 4h · 圣家堂 / 巴特罗 / 古埃尔',          fromTo: '瓦伦西亚 → 巴塞罗那' },
+  { cityId: 'madrid',    day: 'Day 11',   desc: '返程',                  tip: 'AVE 2.5h · 提前买票有 9€ 早鸟',              fromTo: '巴塞罗那 → 马德里' }
+];
+
+function getIdx() { return window.SS.getJourneyIdx(); }
+function setIdx(i) { window.SS.setJourneyIdx(i); }
+
+// ==================== 渲染 ====================
+function render() {
+  const curIdx = getIdx();
+  const cities = window.SLOW_SPAIN.cities;
+
+  // 顶部进度卡
+  const cur = JOURNEY[curIdx];
+  const curCity = cities.find(c => c.id === cur.cityId);
+  document.getElementById('cur-day').textContent = cur.day;
+  document.getElementById('cur-city').textContent = curCity.name;
+  const pct = Math.min(100, Math.round(((curIdx) / 5) * 100));
+  document.getElementById('prog-bar').style.width = pct + '%';
+
+  // 渲染城市列表
+  const list = document.getElementById('city-list');
+  list.innerHTML = JOURNEY.map((j, idx) => {
+    const city = cities.find(c => c.id === j.cityId);
+    const isDone = idx < curIdx;
+    const isCurrent = idx === curIdx;
+    const isLast = idx === JOURNEY.length - 1;
+    const isReturn = idx === JOURNEY.length - 1 && j.cityId === 'madrid';
+
+    // 收藏 / 打卡 统计
+    let bmCount = 0, visitCount = 0;
+    const spots = window.SLOW_SPAIN.spots[j.cityId] || [];
+    spots.forEach(s => {
+      if (localStorage.getItem('bm_' + s.id) === '1') bmCount++;
+      if (localStorage.getItem('visited_' + s.id) === '1') visitCount++;
+    });
+
+    let bg, dotClass, dotIcon, labelBadge;
+    if (isCurrent) {
+      bg = 'bg-gradient-to-br from-olive to-midnight text-white';
+      dotClass = 'bg-olive ring-olive/20 animate-pulse';
+      dotIcon = '<i class="fa-solid fa-location-arrow text-white"></i>';
+      labelBadge = `<span class="px-2 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-semibold"><i class="fa-solid fa-location-dot mr-1"></i>当前位置</span>`;
+    } else if (isDone) {
+      bg = 'bg-white';
+      dotClass = 'bg-tomato';
+      dotIcon = '<i class="fa-solid fa-check text-white text-[10px]"></i>';
+      labelBadge = `<span class="text-xs text-midnight/50">已完成</span>`;
+    } else if (isReturn) {
+      bg = 'bg-white opacity-70';
+      dotClass = 'bg-white border-2 border-midnight/30';
+      dotIcon = '<i class="fa-solid fa-lock text-midnight/30 text-[10px]"></i>';
+      labelBadge = `<span class="text-xs text-midnight/50">返程</span>`;
+    } else {
+      bg = 'bg-white opacity-70';
+      dotClass = 'bg-white border-2 border-midnight/20';
+      dotIcon = '<i class="fa-solid fa-map-pin text-midnight/20 text-[10px]"></i>';
+      labelBadge = `<span class="text-xs text-midnight/40">未到达</span>`;
+    }
+
+    const isReturnStation = isReturn && !isCurrent;
+
+    return `
+      <div class="city-card relative pl-14 ${idx === JOURNEY.length - 1 ? 'pb-2' : 'pb-5'}" data-idx="${idx}" ${isCurrent ? '' : `onclick="window.location='city.html?id=${j.cityId}'"`}>
+        <div class="absolute left-2 top-1 w-5 h-5 rounded-full ${dotClass} flex items-center justify-center ring-4 ${isCurrent ? 'ring-olive/20' : isDone ? 'ring-tomato/15' : 'ring-transparent'}">
+          ${dotIcon}
+        </div>
+        <div class="${bg} rounded-2xl p-3 shadow-sm border ${isCurrent ? 'border-olive/30 shadow-lg shadow-olive/20' : 'border-black/5'}">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold ${isCurrent ? 'bg-white/20 text-white' : isDone ? 'bg-tomato/10 text-tomato' : 'bg-midnight/10 text-midnight/60'}">
+                ${j.day}
+              </span>
+              ${labelBadge}
+            </div>
+            <i class="fa-solid fa-chevron-right ${isCurrent ? 'text-white/70' : 'text-midnight/30'} text-xs"></i>
+          </div>
+          <h3 class="font-bold text-base">${city.name}${isReturnStation ? ' · 返程' : ''}</h3>
+          <p class="text-xs ${isCurrent ? 'text-white/80' : 'text-midnight/60'} mb-2">${city.name_es} · ${j.desc}</p>
+
+          ${!isReturnStation ? `<div class="flex gap-3 text-[10px] ${isCurrent ? 'text-white/80' : 'text-midnight/50'} mb-2">
+            <span><i class="fa-regular fa-bookmark mr-1 ${isCurrent ? 'text-white' : 'text-tomato'}"></i>${bmCount} 收藏</span>
+            <span><i class="fa-solid fa-check mr-1 ${isCurrent ? 'text-white' : 'text-olive'}"></i>${visitCount} 已打卡</span>
+            <span><i class="fa-solid fa-store mr-1"></i>共 ${spots.length} 店</span>
+          </div>` : ''}
+
+          ${!isReturnStation ? `<div class="text-[10px] ${isCurrent ? 'text-white/70' : 'text-midnight/50'} mt-1">
+            <i class="fa-solid fa-lightbulb mr-1"></i>${j.tip}
+          </div>` : ''}
+
+          <!-- 完成按钮 — 仅当前站显示 -->
+          ${isCurrent ? `<button class="complete-btn mt-3 w-full py-2 bg-white text-midnight rounded-xl text-xs font-semibold active:scale-95 transition-all" data-complete="${idx}">
+            <i class="fa-solid fa-check-circle mr-1 text-olive"></i>我已完成这里,前往下一站
+          </button>` : ''}
+
+          ${isDone && !isCurrent && !isReturnStation ? `<button class="complete-btn undo mt-3 w-full py-1.5 border border-olive text-olive rounded-xl text-[10px] font-semibold active:scale-95 transition-all" data-undo="${idx}">
+            <i class="fa-solid fa-undo mr-1"></i>撤回完成
+          </button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 绑定完成按钮
+  list.querySelectorAll('[data-complete]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      completeCurrent();
+    };
+  });
+  list.querySelectorAll('[data-undo]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      undoComplete(parseInt(b.dataset.undo));
+    };
+  });
+
+  // 下一步提示
+  const nextIdx = curIdx + 1;
+  if (nextIdx < JOURNEY.length) {
+    const next = JOURNEY[nextIdx];
+    const nextCity = cities.find(c => c.id === next.cityId);
+    document.getElementById('next-hint').textContent = `${next.day} ${next.fromTo}`;
+    document.getElementById('next-desc').textContent = next.tip;
+    document.getElementById('next-btn-text').textContent = curIdx >= 5 ? '🎉 旅程完成' : `✓ 完成 → ${nextCity.name}`;
+    document.getElementById('next-btn').onclick = () => {
+      if (curIdx >= 5) { alert('🎉 旅程已经走完啦!'); return; }
+      completeCurrent();
+    };
+  } else {
+    document.getElementById('next-hint').textContent = '🎉 全部完成';
+    document.getElementById('next-desc').textContent = '旅途结束,愿你带着满满的回忆回家';
+    document.getElementById('next-btn-text').textContent = '旅程结束';
+    document.getElementById('next-btn').onclick = () => alert('🎉 旅程结束!');
+  }
+}
+
+function completeCurrent() {
+  const cur = getIdx();
+  if (cur >= 5) {
+    alert('🎉 旅途已经走完全部 6 站!');
+    return;
+  }
+  const next = cur + 1;
+  setIdx(next);
+  render();
+  // 滚到顶部
+  const scroller = document.querySelector('.overflow-y-auto');
+  if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function undoComplete(stationIdx) {
+  if (!confirm(`撤回「${stationIdx === 5 ? '返程' : '当前站'}」的完成?`)) return;
+  setIdx(stationIdx);
+  render();
+}
+
+document.getElementById('reset-journey').onclick = () => {
+  if (!confirm('重置起点为 Day 1 马德里?会清掉当前的进度。')) return;
+  setIdx(0);
+  render();
+};
+
+render();
+
+function goTo(page) { window.location.href = page + '.html'; }
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.target));
+});
+</script>
+</body>
+</html>
